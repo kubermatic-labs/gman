@@ -57,11 +57,10 @@ func GetListOfUsers(srv admin.Service) ([]*admin.User, error) {
 		log.Fatalf("Unable to retrieve users in domain: %v", err)
 	}
 
-	//PrintUsers(request.Users)
-
 	return request.Users, nil
 }
 
+// helper function / TODO: change it, esrase it, whatever
 func PrintUsers(users []*admin.User) {
 	if len(users) == 0 {
 		fmt.Print("No users found.\n")
@@ -88,16 +87,16 @@ func GetUserEmails(user *admin.User) (string, string) {
 	return primEmail, secEmail
 }
 
-// TODO: CreateNewUse creates a new user in GSuite via their API
+// CreateNewUse creates a new user in GSuite via their API
 func CreateNewUser(srv admin.Service, user *config.UserConfig) error {
-	// gen a pass
+	// generate a rand password
 	pass, err := password.Generate(20, 5, 5, false, false)
 	if err != nil {
 		log.Fatalf("Unable to generate password: %v", err)
+		return err
 	}
 
 	fmt.Printf("Create user: %s (%s)\n", user.FirstName, user.PrimaryEmail)
-	fmt.Println(pass)
 	newUser := admin.User{
 		Name: &admin.UserName{
 			GivenName:  user.FirstName,
@@ -113,18 +112,21 @@ func CreateNewUser(srv admin.Service, user *config.UserConfig) error {
 		ChangePasswordAtNextLogin: true,
 	}
 
-	request, err := srv.Users.Insert(&newUser).Do()
+	_, err = srv.Users.Insert(&newUser).Do()
 	if err != nil {
 		log.Fatalf("Unable to create a user: %v", err)
+		return err
 	}
-	fmt.Println(request)
-	//PrintUsers(request.Users)
 
 	return nil
 }
 
-// TODO: DeleteUser deletes a user in GSuite via their API
-func DeleteUser(user *admin.User) error {
-	fmt.Printf(" still test but im pretending to delete %s (%s)\n", user.Name.FullName, user.PrimaryEmail)
+// DeleteUser deletes a user in GSuite via their API
+func DeleteUser(srv admin.Service, user *admin.User) error {
+	err := srv.Users.Delete(user.PrimaryEmail).Do()
+	if err != nil {
+		log.Fatalf("Unable to delete a user: %v", err)
+		return err
+	}
 	return nil
 }

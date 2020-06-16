@@ -83,7 +83,7 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 			glib.CreateNewUser(*clientService, &user)
 		}
 		for _, user := range usersToDelete {
-			glib.DeleteUser(user)
+			glib.DeleteUser(*clientService, user)
 		}
 
 	}
