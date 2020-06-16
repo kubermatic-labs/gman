@@ -1,18 +1,17 @@
-# The organisation for which this configuration applies;
+# The organization for which this configuration applies;
 # this must always be set.
-organization: myorganisation
+organization: myorganization
 
-# The list of users in this organisation. Users not defined
+# The list of users in this organization. Users not defined
 # here will be deleted during synchronization. 
 users:
   - #user 1
     given_name: Horst # first name
     family_name: Example # last name
     # the primary email is a GSuite address
-    primary_email: horst@myorganisation.com 
+    primary_email: horst@myorganization.com 
     # secondary email is used to send out an invitation
     secondary_email: horst@privateaddress.com
-    # password can be specified as well, as `password` entry
 
   - #user N 
     given_name: 

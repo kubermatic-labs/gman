@@ -28,21 +28,48 @@ func main() {
 	var (
 		configFile  = ""
 		showVersion = false
-		//confirm            = false
-		//validate           = false
+		confirm     = false
+		validate    = false
 		exportMode  = false
 		createUsers = false
 		deleteUsers = false
+		// TODO: CHANGE TO ""
+		clientSecretFile = "gman-dev-project-bf73cc12b7a5.json"
+		//clientSecretFile = ""
+		// TODO: CHANGE TO ""
+		impersonatedUserEmail = "marta@loodse.training"
+		//impersonatedUserEmail = ""
 	)
 
 	flag.StringVar(&configFile, "config", configFile, "path to the config.yaml")
+	flag.StringVar(&clientSecretFile, "private-key", clientSecretFile, "path to the Service Account secret file (.json) coontaining Keys used for authorization")
+	flag.StringVar(&impersonatedUserEmail, "impersonated-email", impersonatedUserEmail, "path to the config.yaml")
 	flag.BoolVar(&showVersion, "version", showVersion, "show the Gman version and exit")
-	//flag.BoolVar(&confirm, "confirm", confirm, "must be set to actually perform any changes")
-	//flag.BoolVar(&validate, "validate", validate, "validate the given configuration and then exit")
+	flag.BoolVar(&confirm, "confirm", confirm, "must be set to actually perform any changes")
+	flag.BoolVar(&validate, "validate", validate, "validate the given configuration and then exit")
 	flag.BoolVar(&exportMode, "export", exportMode, "export the state and update the config file (-config flag)")
 	flag.BoolVar(&createUsers, "create-users", createUsers, "create repositories listed in the config file but not existing on quay.io yet")
 	flag.BoolVar(&deleteUsers, "delete-users", deleteUsers, "delete repositories on quay.io that are not listed in the config file")
+
 	flag.Parse()
+
+	if clientSecretFile == "" {
+		clientSecretFile = os.Getenv("GMAN_SERVICE_ACCOUNT_KEY")
+		if clientSecretFile == "" {
+			log.Print("⚠ No authorization .json file (-private-key) specified.\n\n")
+			flag.Usage()
+			os.Exit(1)
+		}
+	}
+
+	if impersonatedUserEmail == "" {
+		impersonatedUserEmail = os.Getenv("GMAN_IMPERSONATED_EMAIL")
+		if impersonatedUserEmail == "" {
+			log.Print("⚠ No impersonated user email (-impersonated-email) specified.\n\n")
+			flag.Usage()
+			os.Exit(1)
+		}
+	}
 
 	if showVersion {
 		fmt.Printf("Gman %s (built at %s)\n", version, date)
@@ -50,9 +77,12 @@ func main() {
 	}
 
 	if configFile == "" {
-		log.Print("⚠ No configuration (-config) specified.\n\n")
-		flag.Usage()
-		os.Exit(1)
+		configFile = os.Getenv("GMAN_CONFIG_FILE")
+		if configFile == "" {
+			log.Print("⚠ No configuration (-config) specified.\n\n")
+			flag.Usage()
+			os.Exit(1)
+		}
 	}
 
 	cfg, err := config.LoadFromFile(configFile)
@@ -60,7 +90,26 @@ func main() {
 		log.Fatalf("⚠ Failed to load config %q: %v.", configFile, err)
 	}
 
-	srv, err := glib.NewDirectoryService()
+	// validate config unless in export mode, where an incomplete configuration is allowed and even expected
+	if !exportMode {
+		if err := cfg.Validate(); err != nil {
+			log.Fatalf("⚠ Configuration is invalid: %v", err)
+		} else {
+			log.Println("✓ Configuration is valid.")
+		}
+	}
+
+	if validate {
+		if err := cfg.Validate(); err != nil {
+			log.Fatalf("⚠ Configuration is invalid: %v", err)
+			return
+		} else {
+			log.Println("✓ Configuration is valid.")
+			return
+		}
+	}
+
+	srv, err := glib.NewDirectoryService(clientSecretFile, impersonatedUserEmail)
 	if err != nil {
 		log.Fatalf("⚠ Failed to create GSuite API client (CreateDirectoryService): %v", err)
 	}
@@ -83,31 +132,14 @@ func main() {
 
 	log.Printf("► Updating organization %s…", cfg.Organization)
 
-	//	options := sync.Options{
-	//CreateMissingRepositories:  createRepositories,
-	//DeleteDanglingRepositories: deleteRepositories,
-	//	}
-
-	err = sync.SyncUsers(ctx, srv, cfg)
+	err = sync.SyncConfiguration(ctx, cfg, srv, confirm)
 	if err != nil {
 		log.Fatalf("⚠ Failed to sync state: %v.", err)
 	}
-	//	// TODO: users not repos
-	//	log.Printf("► Updating organization %s…", cfg.Organization)
-	//
-	//	options := sync.Options{
-	//		CreateMissingRepositories:  createRepositories,
-	//		DeleteDanglingRepositories: deleteRepositories,
-	//	}
-	//
-	//	err = sync.Sync(ctx, cfg, client, options)
-	//	if err != nil {
-	//		log.Fatalf("⚠ Failed to sync state: %v.", err)
-	//	}
-	//
-	//	if confirm {
-	//		log.Println("✓ Permissions successfully synchronized.")
-	//	} else {
-	//		log.Println("⚠ Run again with -confirm to apply the changes above.")
-	//}
+
+	if confirm {
+		log.Println("✓ Permissions successfully synchronized.")
+	} else {
+		log.Println("⚠ Run again with -confirm to apply the changes above.")
+	}
 }

@@ -1,13 +1,13 @@
 organization: loodse
 users:
-    - given_name: Test1
-      family_name: Test1
-      primary_email: Test1@loodse.training
-      secondary_email: Test1@loodse.training.test-google-a.com
-    - given_name: Test2
-      family_name: Test2
-      primary_email: Test2@loodse.training
-      secondary_email: Test2@loodse.training.test-google-a.com
+    - given_name: Christoph
+      family_name: Mewes
+      primary_email: christoph@loodse.training
+      secondary_email: christoph@loodse.training.test-google-a.com
+    - given_name: Christopher
+      family_name: Adigun
+      primary_email: christopher@loodse.training
+      secondary_email: christopher@loodse.training.test-google-a.com
     - given_name: Frank
       family_name: Müller
       primary_email: frank@loodse.training
@@ -40,3 +40,8 @@ users:
       family_name: Schneck
       primary_email: tobias.schneck@loodse.training
       secondary_email: tobias.schneck@loodse.training.test-google-a.com
+    
+    - given_name: TestUser
+      family_name: TestGman
+      primary_email: test.gman@loodse.training
+      secondary_email: marta@loodse.com

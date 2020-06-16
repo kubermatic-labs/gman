@@ -2,8 +2,10 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
+	"github.com/kubermatic-labs/gman/pkg/util"
 	"gopkg.in/yaml.v3"
 )
 
@@ -19,7 +21,6 @@ type UserConfig struct {
 	LastName       string `yaml:"family_name"`
 	PrimaryEmail   string `yaml:"primary_email"`
 	SecondaryEmail string `yaml:"secondary_email,omitempty"`
-	Password       string `yaml:"password,omitempty"`
 }
 
 func LoadFromFile(filename string) (*Config, error) {
@@ -53,23 +54,19 @@ func SaveToFile(config *Config, filename string) error {
 }
 
 func (c *Config) Validate() error {
+	// validate organization
 	if c.Organization == "" {
 		return errors.New("no organization configured")
 	}
 
-	//	// TODO OMG EVERITING
-	//
-	//	userLastNames := []string{}
-	//
-	//	for _, user := range c.Users {
-	//		if util.StringSliceContains(userLastNames, user.Name) {
-	//			return fmt.Errorf("duplicate team %q defined", team.Name)
-	//		}
-	//
-	//		teamNames = append(teamNames, team.Name)
-	//	}
-	//
-	//
+	//validate users -> check if duplicated users
+	userEmails := []string{}
+	for _, user := range c.Users {
+		if util.StringSliceContains(userEmails, user.PrimaryEmail) {
+			return fmt.Errorf("duplicate user (primary email: %s) defined", user.PrimaryEmail)
+		}
+		userEmails = append(userEmails, user.PrimaryEmail)
+	}
 
 	return nil
 }

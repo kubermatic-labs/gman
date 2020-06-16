@@ -12,25 +12,17 @@ import (
 
 // TODO: everything ;_;
 
-func SyncConfiguration(ctx context.Context, organization string, clientService *admin.Service) (*config.Config, error) {
+func SyncConfiguration(ctx context.Context, cfg *config.Config, clientService *admin.Service, confirm bool) error {
 
-	//cfg, err := LoadFromFile(filename)
-	//if err != nil {
-	//	log.Println("error config: ", err)
-	//}
-
-	cfg := &config.Config{
-		Organization: organization,
+	if err := SyncUsers(ctx, clientService, cfg, confirm); err != nil {
+		return fmt.Errorf("failed to export users: %v", err)
 	}
 
-	if err := SyncUsers(ctx, clientService, cfg); err != nil {
-		return cfg, fmt.Errorf("failed to export users: %v", err)
-	}
-
-	return cfg, nil
+	return nil
 }
 
-func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Config) error {
+// TODO: SWAP FOR SLICE CHECK ??
+func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Config, confirm bool) error {
 	var usersToDelete []*admin.User
 	var usersToCreate []config.UserConfig
 
@@ -43,7 +35,6 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 	// config defined users
 	configUsers := cfg.Users
 
-	// save to file
 	if len(currentUsers) == 0 {
 		log.Println("⚠ No users found.")
 	} else {
@@ -51,7 +42,6 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 		for _, currentUser := range currentUsers {
 			found := false
 			for _, configUser := range configUsers {
-				//check if New Relic user is on the list of assigned users in Okta; if not, then delete
 				if configUser.PrimaryEmail == currentUser.PrimaryEmail {
 					found = true
 					break
@@ -67,7 +57,6 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 		for _, configUser := range configUsers {
 			found := false
 			for _, currentUser := range currentUsers {
-				//check if Okta user is already on the New Relic list of users
 				if currentUser.PrimaryEmail == configUser.PrimaryEmail {
 					found = true
 					break
@@ -77,7 +66,6 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 				usersToCreate = append(usersToCreate, configUser)
 			}
 		}
-
 	}
 
 	log.Println("Found users to delete: ")
@@ -88,6 +76,16 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 	log.Println("Found users to create: ")
 	for _, u := range usersToCreate {
 		fmt.Printf("  + %s %s\n", u.FirstName, u.LastName)
+	}
+
+	if confirm {
+		for _, user := range usersToCreate {
+			glib.CreateNewUser(*clientService, &user)
+		}
+		for _, user := range usersToDelete {
+			glib.DeleteUser(user)
+		}
+
 	}
 
 	return nil
