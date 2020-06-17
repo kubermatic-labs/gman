@@ -2,8 +2,9 @@ package config
 
 import (
 	"errors"
-	"fmt"
+	"log"
 	"os"
+	"regexp"
 
 	"github.com/kubermatic-labs/gman/pkg/util"
 	"gopkg.in/yaml.v3"
@@ -63,7 +64,23 @@ func (c *Config) Validate() error {
 	userEmails := []string{}
 	for _, user := range c.Users {
 		if util.StringSliceContains(userEmails, user.PrimaryEmail) {
-			return fmt.Errorf("duplicate user (primary email: %s) defined", user.PrimaryEmail)
+			log.Fatal("Validation failes: duplicate user defined (user: " + user.PrimaryEmail + ")")
+		}
+
+		if user.PrimaryEmail == user.SecondaryEmail {
+			log.Fatal("Validation failed: user has defined the same primary and secondary email (user: " + user.PrimaryEmail + ")")
+		}
+
+		re := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+
+		if re.MatchString(user.PrimaryEmail) == false {
+			log.Fatal("Validation failed: invalid primary email (user: " + user.PrimaryEmail + ")")
+		}
+
+		if user.SecondaryEmail != "" {
+			if re.MatchString(user.SecondaryEmail) == false {
+				log.Fatal("Validation failed: invalid secondary email " + user.SecondaryEmail + " (user: " + user.PrimaryEmail + ")")
+			}
 		}
 		userEmails = append(userEmails, user.PrimaryEmail)
 	}

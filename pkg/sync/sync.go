@@ -10,8 +10,6 @@ import (
 	admin "google.golang.org/api/admin/directory/v1"
 )
 
-// TODO: everything ;_;
-
 func SyncConfiguration(ctx context.Context, cfg *config.Config, clientService *admin.Service, confirm bool) error {
 
 	if err := SyncUsers(ctx, clientService, cfg, confirm); err != nil {
@@ -25,6 +23,7 @@ func SyncConfiguration(ctx context.Context, cfg *config.Config, clientService *a
 func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Config, confirm bool) error {
 	var usersToDelete []*admin.User
 	var usersToCreate []config.UserConfig
+	var usersToUpdate []config.UserConfig
 
 	log.Println("⇄ Syncing users")
 	// get the current users array
@@ -38,16 +37,21 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 	if len(currentUsers) == 0 {
 		log.Println("⚠ No users found.")
 	} else {
-		// GET USERS TO DELETE
+		// GET USERS TO DELETE & UPDATE
 		for _, currentUser := range currentUsers {
 			found := false
 			for _, configUser := range configUsers {
 				if configUser.PrimaryEmail == currentUser.PrimaryEmail {
 					found = true
+					if configUser.LastName != currentUser.Name.FamilyName ||
+						configUser.FirstName != currentUser.Name.GivenName {
+						//|| configUser.SecondaryEmail != currentUser.SecondaryEmail  // FIX IT
+						//glib.UpdateUser(*clientService, configUser) // FIX
+						usersToUpdate = append(usersToUpdate, configUser)
+					}
 					break
 				}
 			}
-
 			if !found {
 				usersToDelete = append(usersToDelete, currentUser)
 			}
@@ -68,14 +72,31 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 		}
 	}
 
-	log.Println("Found users to delete: ")
-	for _, u := range usersToDelete {
-		fmt.Printf("  - %s %s\n", u.Name.GivenName, u.Name.FamilyName)
+	if usersToDelete == nil {
+		log.Println("✁ There is no users to delete.")
+	} else {
+		log.Println("✁ Found users to delete: ")
+		for _, u := range usersToDelete {
+			fmt.Printf("  - %s %s\n", u.Name.GivenName, u.Name.FamilyName)
+		}
 	}
 
-	log.Println("Found users to create: ")
-	for _, u := range usersToCreate {
-		fmt.Printf("  + %s %s\n", u.FirstName, u.LastName)
+	if usersToCreate == nil {
+		log.Println("✎ There is no users to create.")
+	} else {
+		log.Println("✎ Found users to create: ")
+		for _, u := range usersToCreate {
+			fmt.Printf("  + %s %s\n", u.FirstName, u.LastName)
+		}
+	}
+
+	if usersToUpdate == nil {
+		log.Println("✎ There is no users to update.")
+	} else {
+		log.Println("✎ Found users to update: ")
+		for _, u := range usersToUpdate {
+			fmt.Printf("  + %s %s\n", u.FirstName, u.LastName)
+		}
 	}
 
 	if confirm {
@@ -84,6 +105,9 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 		}
 		for _, user := range usersToDelete {
 			glib.DeleteUser(*clientService, user)
+		}
+		for _, user := range usersToUpdate {
+			glib.UpdateUser(*clientService, &user) // FIX
 		}
 
 	}

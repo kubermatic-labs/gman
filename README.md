@@ -8,6 +8,7 @@
 - exports the current state as a starter config file
 - preview of any action taken (validation)
 
+**Table of contents:**
 <!-- TOC -->
 - [gman](#gman)
   - [Installation](#installation)

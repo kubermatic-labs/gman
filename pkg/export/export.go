@@ -10,15 +10,7 @@ import (
 	admin "google.golang.org/api/admin/directory/v1"
 )
 
-// TODO: everything ;_;
-
 func ExportConfiguration(ctx context.Context, organization string, clientService *admin.Service) (*config.Config, error) {
-
-	//cfg, err := LoadFromFile(filename)
-	//if err != nil {
-	//	log.Println("error config: ", err)
-	//}
-
 	cfg := &config.Config{
 		Organization: organization,
 	}
@@ -54,8 +46,6 @@ func exportUsers(ctx context.Context, clientService *admin.Service, cfg *config.
 			fmt.Printf("%s (%s)\n", u.PrimaryEmail, u.Name.FullName)
 		}
 	}
-
-	//SaveToFile(cfg, filename)
 
 	return nil
 }

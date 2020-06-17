@@ -14,8 +14,6 @@ import (
 	"github.com/kubermatic-labs/gman/pkg/glib"
 )
 
-//TODO: like everything, copy-pasta alert (from aquayman)
-
 // These variables are set by goreleaser during build time.
 var (
 	version = "dev"
@@ -26,24 +24,20 @@ func main() {
 	ctx := context.Background()
 
 	var (
-		configFile  = ""
-		showVersion = false
-		confirm     = false
-		validate    = false
-		exportMode  = false
-		createUsers = false
-		deleteUsers = false
-		// TODO: CHANGE TO ""
-		clientSecretFile = "gman-dev-project-bf73cc12b7a5.json"
-		//clientSecretFile = ""
-		// TODO: CHANGE TO ""
-		impersonatedUserEmail = "marta@loodse.training"
-		//impersonatedUserEmail = ""
+		configFile            = ""
+		showVersion           = false
+		confirm               = false
+		validate              = false
+		exportMode            = false
+		createUsers           = false
+		deleteUsers           = false
+		clientSecretFile      = ""
+		impersonatedUserEmail = ""
 	)
 
 	flag.StringVar(&configFile, "config", configFile, "path to the config.yaml")
 	flag.StringVar(&clientSecretFile, "private-key", clientSecretFile, "path to the Service Account secret file (.json) coontaining Keys used for authorization")
-	flag.StringVar(&impersonatedUserEmail, "impersonated-email", impersonatedUserEmail, "path to the config.yaml")
+	flag.StringVar(&impersonatedUserEmail, "impersonated-email", impersonatedUserEmail, "Admin email used to impersonate Service Account")
 	flag.BoolVar(&showVersion, "version", showVersion, "show the Gman version and exit")
 	flag.BoolVar(&confirm, "confirm", confirm, "must be set to actually perform any changes")
 	flag.BoolVar(&validate, "validate", validate, "validate the given configuration and then exit")
@@ -138,7 +132,7 @@ func main() {
 	}
 
 	if confirm {
-		log.Println("✓ Permissions successfully synchronized.")
+		log.Println("✓ Users successfully synchronized.")
 	} else {
 		log.Println("⚠ Run again with -confirm to apply the changes above.")
 	}

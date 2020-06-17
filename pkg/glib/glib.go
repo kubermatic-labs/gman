@@ -32,7 +32,7 @@ func NewDirectoryService(clientSecretFile string, impersonatedUserEmail string) 
 
 	jsonCredentials, err := ioutil.ReadFile(clientSecretFile)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ReadFile(clientSecretFile): %v", err)
 	}
 
 	config, err := google.JWTConfigFromJSON(jsonCredentials, admin.AdminDirectoryUserScope)
@@ -55,12 +55,13 @@ func GetListOfUsers(srv admin.Service) ([]*admin.User, error) {
 	request, err := srv.Users.List().Customer("my_customer").OrderBy("email").Do()
 	if err != nil {
 		log.Fatalf("Unable to retrieve users in domain: %v", err)
+		return nil, err
 	}
 
 	return request.Users, nil
 }
 
-// helper function / TODO: change it, esrase it, whatever
+// helper function foor testing / TODO: change it, esrase it, whatever
 func PrintUsers(users []*admin.User) {
 	if len(users) == 0 {
 		fmt.Print("No users found.\n")
@@ -73,6 +74,7 @@ func PrintUsers(users []*admin.User) {
 	}
 }
 
+// TODO: make it nicer, discover the API possibilities whoop whoop
 func GetUserEmails(user *admin.User) (string, string) {
 	var primEmail string
 	var secEmail string
@@ -126,6 +128,32 @@ func DeleteUser(srv admin.Service, user *admin.User) error {
 	err := srv.Users.Delete(user.PrimaryEmail).Do()
 	if err != nil {
 		log.Fatalf("Unable to delete a user: %v", err)
+		return err
+	}
+	return nil
+}
+
+// UpdateUser makes sure that the user in Gsuite is corresponding to user in config
+// in case it is not, it updates the remote user with config
+func UpdateUser(srv admin.Service, user *config.UserConfig) error {
+
+	fmt.Printf("Update user: %s \n", user.PrimaryEmail)
+	updatedUser := &admin.User{
+		Name: &admin.UserName{
+			GivenName:  user.FirstName,
+			FamilyName: user.LastName,
+		},
+		PrimaryEmail: user.PrimaryEmail,
+		Emails: &admin.UserEmail{
+			Address: user.SecondaryEmail, // FIX IT IT DOESNT WORK
+			Primary: false,
+			Type:    "work",
+		},
+	}
+
+	_, err := srv.Users.Update(user.PrimaryEmail, updatedUser).Do()
+	if err != nil {
+		log.Fatalf("Unable to update a user: %v", err)
 		return err
 	}
 	return nil
