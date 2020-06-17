@@ -43,10 +43,11 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 			for _, configUser := range configUsers {
 				if configUser.PrimaryEmail == currentUser.PrimaryEmail {
 					found = true
+					// user is existing & should exist, so check if needs an update
+					_, workEmail := glib.GetUserEmails(currentUser)
 					if configUser.LastName != currentUser.Name.FamilyName ||
-						configUser.FirstName != currentUser.Name.GivenName {
-						//|| configUser.SecondaryEmail != currentUser.SecondaryEmail  // FIX IT
-						//glib.UpdateUser(*clientService, configUser) // FIX
+						configUser.FirstName != currentUser.Name.GivenName ||
+						configUser.SecondaryEmail != workEmail {
 						usersToUpdate = append(usersToUpdate, configUser)
 					}
 					break
@@ -77,7 +78,7 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 	} else {
 		log.Println("✁ Found users to delete: ")
 		for _, u := range usersToDelete {
-			fmt.Printf("  - %s %s\n", u.Name.GivenName, u.Name.FamilyName)
+			log.Printf("\t- %s %s\n", u.Name.GivenName, u.Name.FamilyName)
 		}
 	}
 
@@ -86,7 +87,7 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 	} else {
 		log.Println("✎ Found users to create: ")
 		for _, u := range usersToCreate {
-			fmt.Printf("  + %s %s\n", u.FirstName, u.LastName)
+			log.Printf("\t+ %s %s\n", u.FirstName, u.LastName)
 		}
 	}
 
@@ -95,7 +96,7 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 	} else {
 		log.Println("✎ Found users to update: ")
 		for _, u := range usersToUpdate {
-			fmt.Printf("  + %s %s\n", u.FirstName, u.LastName)
+			log.Printf("\t~ %s %s\n", u.FirstName, u.LastName)
 		}
 	}
 
@@ -107,7 +108,7 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 			glib.DeleteUser(*clientService, user)
 		}
 		for _, user := range usersToUpdate {
-			glib.UpdateUser(*clientService, &user) // FIX
+			glib.UpdateUser(*clientService, &user)
 		}
 
 	}

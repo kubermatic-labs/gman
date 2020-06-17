@@ -18,6 +18,14 @@
     - [Impersonated Email](#impersonated-email)
     - [Config YAML](#config-yaml)
   - [Usage](#usage)
+    - [Exporting](#exporting)
+    - [Validating](#validating)
+    - [Synchronizing](#synchronizing)
+    - [User creation](#user-creation)
+    - [User deletion](#user-deletion)
+    - [User update](#user-update)
+  - [Limitations](#limitations)
+    - [Sending the login info email to the new users](#sending-the-login-info-email-to-the-new-users)
   - [Changelog](#changelog)
 <!-- /TOC -->
 
@@ -63,9 +71,135 @@ There are two ways to specify the path to the configuration YAML file:
 - start the application with specified flag `-config <value>`
 
 ## Usage
+After the completion of the steps above, *Gman* can perform for you: 
+1. [exporting](#exporting) of the config of the users from the domain;
+2. [validating](#validating) the config file;
+3. [synchronizing](#synchronizing) - comparing the state - the users without executing the changes;
+4. [user creation](#user-creation), when a user specified in the config file does not exists in Gsuite;
+5. [user deletion](#user-deletion), when a user present in Gsuite is not specified in the config file;
+6. [user update](#user-update) in order to adjust the state in Gsuite to what is in the config.
 
-...
+### Exporting
+
+To get started, *Gman* can export your existing Gsuite users into a configuration file.
+For this to work, prepare a fresh configuration file and put your organisation name in it.
+You can skip everything else:
+
+```yaml
+organization: myorganization
+```
+
+Now run *Gman* with the `-export` flag:
+
+```bash
+$ gman -config myconfig.yaml -export
+2020/06/17 19:17:28 ► Exporting organization myorganization...
+2020/06/17 19:17:28 ⇄ Exporting users from GSuite...
+2020/06/17 19:17:28 ✓ Export successful.
+```
+
+Afterwards, the `myconfig.yaml` will contain an exact representation of your users:
+
+```yaml
+organization: myorganization
+users:
+    - given_name: 
+      family_name: 
+      primary_email: @myorganization.com
+      secondary_email: @privatedomain.com
+    - given_name: 
+      family_name: 
+      primary_email: @myorganization.com
+      secondary_email: @privatedomain.com
+```
+
+
+### Validating
+
+It's possible to validate a configuration file for:
+- duplicated users (based on primary email),
+- primary and secondary emails being different,
+- if specified emails obey semantical corectness.
+- 
+In order to validate the file, run *Gman* with the `-validate` flag:
+```bash
+$ gman -config myconfig.yaml -validate
+2020/06/17 19:24:49 ✓ Configuration is valid.
+```
+If the config is valid, the program exits with code 0, otherwise with a non-zero code.
+If this flag is specified, *Gman* performs **only** the config validation. Otherwise, validation takes place before every synchronization. 
+
+### Synchronizing
+
+Synchronizing means updating Gsuite's users state to match the given configuration file. Without specifying the `-confirm` flag the changes are not performed:
+
+```bash
+$ gman -config myconfig.yaml
+2020/06/17 19:32:28 ✓ Configuration is valid.
+2020/06/17 19:32:28 ► Updating organization Loodse…
+2020/06/17 19:32:28 ⇄ Syncing users
+2020/06/17 19:32:29 ✁ There is no users to delete.
+2020/06/17 19:32:29 ✎ Found users to create: 
+2020/06/17 19:32:29     + Someone New
+2020/06/17 19:32:29 ✎ There is no users to update.
+2020/06/17 19:32:29 ⚠ Run again with -confirm to apply the changes above.
+```
+
+### User creation
+When running *Gman* with the `-confirm` flag, the users - that have been depicted to be present in config file, but not in Gsuite - are automatically created.
+
+```bash
+$ gman -config myconfig.yaml -confirm
+2020/06/17 19:34:13 ✓ Configuration is valid.
+2020/06/17 19:34:13 ► Updating organization myorganization…
+2020/06/17 19:34:13 ⇄ Syncing users
+2020/06/17 19:34:14 ✁ There is no users to delete.
+2020/06/17 19:34:14 ✎ Found users to create: 
+2020/06/17 19:34:14     + Someone New
+2020/06/17 19:34:14 ✎ There is no users to update.
+2020/06/17 19:34:14 Created user: someone@myorganization.training 
+2020/06/17 19:34:14 ✓ Users successfully synchronized.
+```
+
+### User deletion
+When running *Gman* with the `-confirm` flag, the users - that have been depicted to be present in Gsuite, but not in config file - are automatically deleted.
+
+```bash
+gman -config myconfig.yaml -confirm
+2020/06/17 19:37:39 ✓ Configuration is valid.
+2020/06/17 19:37:39 ► Updating organization Loodse…
+2020/06/17 19:37:39 ⇄ Syncing users
+2020/06/17 19:37:39 ✁ Found users to delete: 
+2020/06/17 19:37:39     - Someone ToDelete
+2020/06/17 19:37:39 ✎ There is no users to create.
+2020/06/17 19:37:39 ✎ There is no users to update.
+2020/06/17 19:37:40 Deleted user: someone.new@loodse.training 
+2020/06/17 19:37:40 ✓ Users successfully synchronized.
+```
+
+### User update
+When running *Gman* with the `-confirm` flag, the users - that have been depicted to be have specified different values in the config file, than they have in Gsuite - are automatically updated.
+
+```bash
+$ gman -config myconfig.yaml -confirm
+2020/06/17 19:36:12 ✓ Configuration is valid.
+2020/06/17 19:36:12 ► Updating organization Loodse…
+2020/06/17 19:36:12 ⇄ Syncing users
+2020/06/17 19:36:13 ✁ There is no users to delete.
+2020/06/17 19:36:13 ✎ There is no users to create.
+2020/06/17 19:36:13 ✎ Found users to update: 
+2020/06/17 19:36:13     ~ Someone ChangedName
+2020/06/17 19:36:13 Updated user: someone.new@loodse.training 
+2020/06/17 19:36:13 ✓ Users successfully synchronized.
+```
+
+## Limitations
+### Sending the login info email to the new users
+Due to the fact that it is impossible to automate the send out of the login information email via Google API there are two possibilities to enable the first log in of the new user: 
+- manually send the login information email from admin console via _RESET PASSWORD_ option (follow instructions on [this official google doc](https://support.google.com/a/answer/33319?hl=en))
+- set up a password recovery for users (follow [this official google doc](https://support.google.com/a/answer/33382?p=accnt_recovery_users&visit_id=637279854011127407-389630162&rd=1&hl=en) to perform it). *Gman* sets te secondary email address as a recovery email; hence, in your onboarding message you should inform the user about his new Gsuite email address and that on the first login, the _forgot password_ option should be chosen, so the verification code can be sent to to the private secondary email. 
 
 ## Changelog
 
 For detailed information on the latest updates, check the [Changelog](CHANGELOG.md).
+

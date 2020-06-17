@@ -57,11 +57,10 @@ func GetListOfUsers(srv admin.Service) ([]*admin.User, error) {
 		log.Fatalf("Unable to retrieve users in domain: %v", err)
 		return nil, err
 	}
-
 	return request.Users, nil
 }
 
-// helper function foor testing / TODO: change it, esrase it, whatever
+// helper function for testing / TODO: change it, esrase it, whatever
 func PrintUsers(users []*admin.User) {
 	if len(users) == 0 {
 		fmt.Print("No users found.\n")
@@ -74,7 +73,8 @@ func PrintUsers(users []*admin.User) {
 	}
 }
 
-// TODO: make it nicer, discover the API possibilities whoop whoop
+// GetUserEmails retrieves primary and secondary (type: work) user email addresses
+// it is impossible to make it nicer ;_;
 func GetUserEmails(user *admin.User) (string, string) {
 	var primEmail string
 	var secEmail string
@@ -97,18 +97,18 @@ func CreateNewUser(srv admin.Service, user *config.UserConfig) error {
 		log.Fatalf("Unable to generate password: %v", err)
 		return err
 	}
-
-	fmt.Printf("Create user: %s (%s)\n", user.FirstName, user.PrimaryEmail)
 	newUser := admin.User{
 		Name: &admin.UserName{
 			GivenName:  user.FirstName,
 			FamilyName: user.LastName,
 		},
-		PrimaryEmail: user.PrimaryEmail,
-		Emails: &admin.UserEmail{
-			Address: user.SecondaryEmail, // FIX IT IT DOESNT WORK
-			Primary: false,
-			Type:    "work",
+		PrimaryEmail:  user.PrimaryEmail,
+		RecoveryEmail: user.SecondaryEmail,
+		Emails: []admin.UserEmail{
+			{
+				Address: user.SecondaryEmail,
+				Type:    "work",
+			},
 		},
 		Password:                  pass,
 		ChangePasswordAtNextLogin: true,
@@ -119,7 +119,7 @@ func CreateNewUser(srv admin.Service, user *config.UserConfig) error {
 		log.Fatalf("Unable to create a user: %v", err)
 		return err
 	}
-
+	log.Printf("Created user: %s \n", user.PrimaryEmail)
 	return nil
 }
 
@@ -130,24 +130,25 @@ func DeleteUser(srv admin.Service, user *admin.User) error {
 		log.Fatalf("Unable to delete a user: %v", err)
 		return err
 	}
+	log.Printf("Deleted user: %s \n", user.PrimaryEmail)
 	return nil
 }
 
 // UpdateUser makes sure that the user in Gsuite is corresponding to user in config
 // in case it is not, it updates the remote user with config
 func UpdateUser(srv admin.Service, user *config.UserConfig) error {
-
-	fmt.Printf("Update user: %s \n", user.PrimaryEmail)
 	updatedUser := &admin.User{
 		Name: &admin.UserName{
 			GivenName:  user.FirstName,
 			FamilyName: user.LastName,
 		},
-		PrimaryEmail: user.PrimaryEmail,
-		Emails: &admin.UserEmail{
-			Address: user.SecondaryEmail, // FIX IT IT DOESNT WORK
-			Primary: false,
-			Type:    "work",
+		PrimaryEmail:  user.PrimaryEmail,
+		RecoveryEmail: user.SecondaryEmail,
+		Emails: []admin.UserEmail{
+			{
+				Address: user.SecondaryEmail,
+				Type:    "work",
+			},
 		},
 	}
 
@@ -156,5 +157,6 @@ func UpdateUser(srv admin.Service, user *config.UserConfig) error {
 		log.Fatalf("Unable to update a user: %v", err)
 		return err
 	}
+	log.Printf("Updated user: %s \n", user.PrimaryEmail)
 	return nil
 }

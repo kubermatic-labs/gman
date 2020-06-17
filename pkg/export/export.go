@@ -32,7 +32,6 @@ func exportUsers(ctx context.Context, clientService *admin.Service, cfg *config.
 		log.Println("⚠ No users found.")
 	} else {
 		for _, u := range users {
-
 			// get emails
 			primaryEmail, secondaryEmail := glib.GetUserEmails(u)
 
@@ -42,8 +41,6 @@ func exportUsers(ctx context.Context, clientService *admin.Service, cfg *config.
 				PrimaryEmail:   primaryEmail,
 				SecondaryEmail: secondaryEmail,
 			})
-
-			fmt.Printf("%s (%s)\n", u.PrimaryEmail, u.Name.FullName)
 		}
 	}
 
