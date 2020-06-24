@@ -2,6 +2,13 @@
 # this must always be set.
 organization: myorganization
 
+# The list of org units in this organization. Org units not defined
+# here will be deleted during synchronization.
+org_units:
+    - name: example unit
+      description: test org unit 
+      parentOrgUnitPath: / # single slash indicates the parent org
+
 # The list of users in this organization. Users not defined
 # here will be deleted during synchronization. 
 users:
@@ -13,8 +20,19 @@ users:
     # secondary email is used to send out an invitation
     secondary_email: horst@privateaddress.com
 
-  - #user N 
-    given_name: 
-    family_name: 
-    primary_email:
-    secondary_email:
+  - given_name: Gregor
+    family_name: Samsa
+    primary_email: gregor@myorganization.com
+    secondary_email: gregor@privatedomain.com
+
+# The list of groups and its members in this organization. 
+# Groups not defined here will be deleted during synchronization. 
+# Members not defined in the group will be removed from it during synchronization.
+groups:
+    - name: Test Group
+      email: testgroup@myorganization.com
+      members:
+        - email: horst@myorganization.com
+          role: MEMBER
+        - email: gregor@myorganization.com
+          role: OWNER

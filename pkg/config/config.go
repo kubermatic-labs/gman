@@ -10,11 +10,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// TODO: everything ;_;
-
 type Config struct {
-	Organization string       `yaml:"organization"`
-	Users        []UserConfig `yaml:"users,omitempty"`
+	Organization string          `yaml:"organization"`
+	OrgUnits     []OrgUnitConfig `yaml:"org_units,omitempty"`
+	Users        []UserConfig    `yaml:"users,omitempty"`
+	Groups       []GroupConfig   `yaml:"groups,omitempty"`
 }
 
 type UserConfig struct {
@@ -22,6 +22,26 @@ type UserConfig struct {
 	LastName       string `yaml:"family_name"`
 	PrimaryEmail   string `yaml:"primary_email"`
 	SecondaryEmail string `yaml:"secondary_email,omitempty"`
+	OrgUnit        string `yaml:"organizational_unit,omitempty"`
+}
+
+type GroupConfig struct {
+	Name        string         `yaml:"name"`
+	Email       string         `yaml:"email"`
+	Description string         `yaml:"description,omitempty"`
+	Members     []MemberConfig `yaml:"members,omitempty"`
+}
+
+type MemberConfig struct {
+	Email string `yaml:"email"`
+	Role  string `yaml:"role,omitempty"`
+}
+
+type OrgUnitConfig struct {
+	Name              string `yaml:"name"`
+	Description       string `yaml:"description,omitempty"`
+	ParentOrgUnitPath string `yaml:"parentOrgUnitPath,omitempty"`
+	BlockInheritance  bool   `yaml:"blockInheritance,omitempty"`
 }
 
 func LoadFromFile(filename string) (*Config, error) {
@@ -60,7 +80,7 @@ func (c *Config) Validate() error {
 		return errors.New("no organization configured")
 	}
 
-	//validate users -> check if duplicated users
+	//validate users
 	userEmails := []string{}
 	for _, user := range c.Users {
 		if util.StringSliceContains(userEmails, user.PrimaryEmail) {
@@ -84,6 +104,8 @@ func (c *Config) Validate() error {
 		}
 		userEmails = append(userEmails, user.PrimaryEmail)
 	}
+
+	// TODO: validate orgunits & groups
 
 	return nil
 }

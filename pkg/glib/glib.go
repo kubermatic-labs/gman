@@ -14,17 +14,6 @@ import (
 	"google.golang.org/api/option"
 )
 
-// GSuiteUser stores the User object returned from the users api
-// https://godoc.org/google.golang.org/api/admin/directory/v1#User
-type GSuiteUser struct {
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Email     string `json:"email"`
-	Password  string `json:"password"`
-	Role      string `json:"role"`
-	ID        int    `json:"id"`
-}
-
 // CreateDirectoryService() creates a client for communicating with Google APIs,
 // returns an Admin SDK Directory service object authorized with.
 func NewDirectoryService(clientSecretFile string, impersonatedUserEmail string) (*admin.Service, error) {
@@ -35,7 +24,7 @@ func NewDirectoryService(clientSecretFile string, impersonatedUserEmail string) 
 		return nil, fmt.Errorf("ReadFile(clientSecretFile): %v", err)
 	}
 
-	config, err := google.JWTConfigFromJSON(jsonCredentials, admin.AdminDirectoryUserScope)
+	config, err := google.JWTConfigFromJSON(jsonCredentials, admin.AdminDirectoryUserScope, admin.AdminDirectoryGroupScope, admin.AdminDirectoryGroupMemberScope, admin.AdminDirectoryOrgunitScope)
 	if err != nil {
 		return nil, fmt.Errorf("JWTConfigFromJSON: %v", err)
 	}
@@ -49,6 +38,10 @@ func NewDirectoryService(clientSecretFile string, impersonatedUserEmail string) 
 	}
 	return srv, nil
 }
+
+//----------------------------------------//
+//   User handling                        //
+//----------------------------------------//
 
 // GetListOfUsers returns a list of all current users form the API
 func GetListOfUsers(srv admin.Service) ([]*admin.User, error) {
@@ -75,7 +68,7 @@ func GetUserEmails(user *admin.User) (string, string) {
 	return primEmail, secEmail
 }
 
-// CreateNewUse creates a new user in GSuite via their API
+// CreateNewUser creates a new user in GSuite via their API
 func CreateNewUser(srv admin.Service, user *config.UserConfig) error {
 	// generate a rand password
 	pass, err := password.Generate(20, 5, 5, false, false)
@@ -107,8 +100,7 @@ func DeleteUser(srv admin.Service, user *admin.User) error {
 	return nil
 }
 
-// UpdateUser makes sure that the user in Gsuite is corresponding to user in config
-// in case it is not, it updates the remote user with config
+// UpdateUser updates the remote user with config
 func UpdateUser(srv admin.Service, user *config.UserConfig) error {
 	updatedUser := createGSuiteUserFromConfig(user)
 	_, err := srv.Users.Update(user.PrimaryEmail, updatedUser).Do()
@@ -138,4 +130,134 @@ func createGSuiteUserFromConfig(user *config.UserConfig) *admin.User {
 	}
 
 	return googleUser
+}
+
+//----------------------------------------//
+//   Group handling                       //
+//----------------------------------------//
+
+// GetListOfGroups returns a list of all current groups from the API
+func GetListOfGroups(srv *admin.Service) ([]*admin.Group, error) {
+	request, err := srv.Groups.List().Customer("my_customer").OrderBy("email").Do()
+	if err != nil {
+		log.Fatalf("Unable to retrieve groups in domain: %v", err)
+		return nil, err
+	}
+	return request.Groups, nil
+}
+
+// CreateGroup creates a new group in GSuite via their API
+func CreateGroup(srv admin.Service, group *config.GroupConfig) error {
+	newGroup := createGSuiteGroupFromConfig(group)
+	_, err := srv.Groups.Insert(newGroup).Do()
+	if err != nil {
+		log.Fatalf("Unable to create a group: %v", err)
+		return err
+	}
+	// add the members
+	for _, member := range group.Members {
+		AddNewMember(srv, newGroup.Email, &member)
+	}
+	return nil
+}
+
+// DeleteGroup deletes a group in GSuite via their API
+func DeleteGroup(srv admin.Service, group *admin.Group) error {
+	err := srv.Groups.Delete(group.Email).Do()
+	if err != nil {
+		log.Fatalf("Unable to delete a group: %v", err)
+		return err
+	}
+	return nil
+}
+
+// UpdateGroup updates the remote group with config
+func UpdateGroup(srv admin.Service, group *config.GroupConfig) error {
+	updatedGroup := createGSuiteGroupFromConfig(group)
+	_, err := srv.Groups.Update(group.Email, updatedGroup).Do()
+	if err != nil {
+		log.Fatalf("Unable to update a group: %v", err)
+		return err
+	}
+	return nil
+}
+
+// createGSuiteGroupFromConfig converts a ConfigGroup to (Gsuite) admin.Group
+func createGSuiteGroupFromConfig(group *config.GroupConfig) *admin.Group {
+	googleGroup := &admin.Group{
+		Name:  group.Name,
+		Email: group.Email,
+	}
+	if group.Description != "" {
+		googleGroup.Description = group.Description
+	}
+	return googleGroup
+}
+
+//----------------------------------------//
+//   Group Member handling                //
+//----------------------------------------//
+
+// GetListOfMembers returns a list of all current group members form the API
+func GetListOfMembers(srv *admin.Service, group *admin.Group) ([]*admin.Member, error) {
+	request, err := srv.Members.List(group.Email).Do()
+	if err != nil {
+		log.Fatalf("Unable to retrieve members in group %s: %v", group.Name, err)
+		return nil, err
+	}
+	return request.Members, nil
+}
+
+// AddNewMember adds a new member to a group in GSuite
+func AddNewMember(srv admin.Service, groupEmail string, member *config.MemberConfig) error {
+	newMember := createGSuiteGroupMemberFromConfig(member)
+	_, err := srv.Members.Insert(groupEmail, newMember).Do()
+	if err != nil {
+		log.Fatalf("Unable to add a member: %v", err)
+		return err
+	}
+	return nil
+}
+
+// RemoveMember removes a member from a group in Gsuite
+func RemoveMember(srv admin.Service, groupEmail string, member *admin.Member) error {
+	err := srv.Members.Delete(groupEmail, member.Email).Do()
+	if err != nil {
+		log.Fatalf("Unable to delete a member: %v", err)
+		return err
+	}
+	return nil
+}
+
+// MemberExists checks if member exists in group
+func MemberExists(srv admin.Service, group *admin.Group, member *config.MemberConfig) bool {
+	exists, err := srv.Members.HasMember(group.Email, member.Email).Do()
+	if err != nil {
+		log.Fatalf("Unable to check if member %s exists in a group %s: %v", member.Email, group.Name, err)
+		return false
+	}
+	return exists.IsMember
+}
+
+// createGSuiteGroupMemberFromConfig converts a ConfigMember to (Gsuite) admin.Member
+func createGSuiteGroupMemberFromConfig(member *config.MemberConfig) *admin.Member {
+	googleMember := &admin.Member{
+		Email: member.Email,
+		Role:  member.Role,
+	}
+	return googleMember
+}
+
+//----------------------------------------//
+//   OrgUnit handling                     //
+//----------------------------------------//
+
+// GetListOfOrgUnits returns a list of all current organizational units form the API
+func GetListOfOrgUnits(srv *admin.Service) ([]*admin.OrgUnit, error) {
+	request, err := srv.Orgunits.List("my_customer").Do()
+	if err != nil {
+		log.Fatalf("Unable to retrieve OrgUnits in domain: %v", err)
+		return nil, err
+	}
+	return request.OrganizationUnits, nil
 }
