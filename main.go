@@ -91,14 +91,7 @@ func main() {
 		} else {
 			log.Println("✓ Configuration is valid.")
 		}
-	}
-
-	if validate {
-		if err := cfg.Validate(); err != nil {
-			log.Fatalf("⚠ Configuration is invalid: %v", err)
-			return
-		} else {
-			log.Println("✓ Configuration is valid.")
+		if validate {
 			return
 		}
 	}

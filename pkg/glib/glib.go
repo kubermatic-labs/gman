@@ -57,24 +57,10 @@ func GetListOfUsers(srv admin.Service) ([]*admin.User, error) {
 		log.Fatalf("Unable to retrieve users in domain: %v", err)
 		return nil, err
 	}
-
 	return request.Users, nil
 }
 
-// helper function foor testing / TODO: change it, esrase it, whatever
-func PrintUsers(users []*admin.User) {
-	if len(users) == 0 {
-		fmt.Print("No users found.\n")
-	} else {
-		fmt.Print("Current users in Gsuite:\n")
-		for _, u := range users {
-			pri, sec := GetUserEmails(u)
-			fmt.Printf("  %s (%s) (secondary: %s) \n", pri, u.Name.FullName, sec)
-		}
-	}
-}
-
-// TODO: make it nicer, discover the API possibilities whoop whoop
+// GetUserEmails retrieves primary and secondary (type: work) user email addresses
 func GetUserEmails(user *admin.User) (string, string) {
 	var primEmail string
 	var secEmail string
@@ -97,29 +83,16 @@ func CreateNewUser(srv admin.Service, user *config.UserConfig) error {
 		log.Fatalf("Unable to generate password: %v", err)
 		return err
 	}
+	newUser := createGSuiteUserFromConfig(user)
+	newUser.Password = pass
+	newUser.ChangePasswordAtNextLogin = true
 
-	fmt.Printf("Create user: %s (%s)\n", user.FirstName, user.PrimaryEmail)
-	newUser := admin.User{
-		Name: &admin.UserName{
-			GivenName:  user.FirstName,
-			FamilyName: user.LastName,
-		},
-		PrimaryEmail: user.PrimaryEmail,
-		Emails: &admin.UserEmail{
-			Address: user.SecondaryEmail, // FIX IT IT DOESNT WORK
-			Primary: false,
-			Type:    "work",
-		},
-		Password:                  pass,
-		ChangePasswordAtNextLogin: true,
-	}
-
-	_, err = srv.Users.Insert(&newUser).Do()
+	_, err = srv.Users.Insert(newUser).Do()
 	if err != nil {
 		log.Fatalf("Unable to create a user: %v", err)
 		return err
 	}
-
+	log.Printf("Created user: %s \n", user.PrimaryEmail)
 	return nil
 }
 
@@ -130,31 +103,39 @@ func DeleteUser(srv admin.Service, user *admin.User) error {
 		log.Fatalf("Unable to delete a user: %v", err)
 		return err
 	}
+	log.Printf("Deleted user: %s \n", user.PrimaryEmail)
 	return nil
 }
 
 // UpdateUser makes sure that the user in Gsuite is corresponding to user in config
 // in case it is not, it updates the remote user with config
 func UpdateUser(srv admin.Service, user *config.UserConfig) error {
-
-	fmt.Printf("Update user: %s \n", user.PrimaryEmail)
-	updatedUser := &admin.User{
-		Name: &admin.UserName{
-			GivenName:  user.FirstName,
-			FamilyName: user.LastName,
-		},
-		PrimaryEmail: user.PrimaryEmail,
-		Emails: &admin.UserEmail{
-			Address: user.SecondaryEmail, // FIX IT IT DOESNT WORK
-			Primary: false,
-			Type:    "work",
-		},
-	}
-
+	updatedUser := createGSuiteUserFromConfig(user)
 	_, err := srv.Users.Update(user.PrimaryEmail, updatedUser).Do()
 	if err != nil {
 		log.Fatalf("Unable to update a user: %v", err)
 		return err
 	}
+	log.Printf("Updated user: %s \n", user.PrimaryEmail)
 	return nil
+}
+
+// createGSuiteUserFromConfig converts a ConfigUser to (Gsuite) admin.User
+func createGSuiteUserFromConfig(user *config.UserConfig) *admin.User {
+	googleUser := &admin.User{
+		Name: &admin.UserName{
+			GivenName:  user.FirstName,
+			FamilyName: user.LastName,
+		},
+		PrimaryEmail:  user.PrimaryEmail,
+		RecoveryEmail: user.SecondaryEmail,
+		Emails: []admin.UserEmail{
+			{
+				Address: user.SecondaryEmail,
+				Type:    "work",
+			},
+		},
+	}
+
+	return googleUser
 }
