@@ -1,12 +1,12 @@
 # gman
 
-*gman links all Gsuite accounts with the matching user-list storage in form of a YAML. It is based on the `Aquayman` tool.*
+*gman links all Gsuite accounts with the matching user-list storage in form of a YAML. It is based on the [Aquayman](https://github.com/kubermatic-labs/aquayman) tool.*
 
 **Features:**
 
-- declare your users in code (IaC) via YAML, which will then be applied to GSuite organization
-- exports the current state as a starter config file
-- preview of any action taken (validation)
+- declare your users, groups and org units in code (IaC) via config YAML, which will then be applied to GSuite organization
+- export the current state as a starter config file
+- preview any action taken (validation)
 
 **Table of contents:**
 <!-- TOC -->
