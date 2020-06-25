@@ -85,7 +85,6 @@ func CreateNewUser(srv admin.Service, user *config.UserConfig) error {
 		log.Fatalf("Unable to create a user: %v", err)
 		return err
 	}
-	log.Printf("Created user: %s \n", user.PrimaryEmail)
 	return nil
 }
 
@@ -96,7 +95,6 @@ func DeleteUser(srv admin.Service, user *admin.User) error {
 		log.Fatalf("Unable to delete a user: %v", err)
 		return err
 	}
-	log.Printf("Deleted user: %s \n", user.PrimaryEmail)
 	return nil
 }
 
@@ -108,7 +106,6 @@ func UpdateUser(srv admin.Service, user *config.UserConfig) error {
 		log.Fatalf("Unable to update a user: %v", err)
 		return err
 	}
-	log.Printf("Updated user: %s \n", user.PrimaryEmail)
 	return nil
 }
 
@@ -119,14 +116,19 @@ func createGSuiteUserFromConfig(user *config.UserConfig) *admin.User {
 			GivenName:  user.FirstName,
 			FamilyName: user.LastName,
 		},
-		PrimaryEmail:  user.PrimaryEmail,
-		RecoveryEmail: user.SecondaryEmail,
-		Emails: []admin.UserEmail{
+		PrimaryEmail: user.PrimaryEmail,
+		OrgUnitPath:  user.OrgUnitPath,
+	}
+
+	if user.SecondaryEmail != "" {
+		googleUser.RecoveryEmail = user.SecondaryEmail
+		workEm := &[]admin.UserEmail{
 			{
 				Address: user.SecondaryEmail,
 				Type:    "work",
 			},
-		},
+		}
+		googleUser.Emails = workEm
 	}
 
 	return googleUser
@@ -239,6 +241,18 @@ func MemberExists(srv admin.Service, group *admin.Group, member *config.MemberCo
 	return exists.IsMember
 }
 
+// UpdateMembership changes the role of the member
+// Update(groupKey string, memberKey string, member *Member)
+func UpdateMembership(srv admin.Service, groupEmail string, member *config.MemberConfig) error {
+	newMember := createGSuiteGroupMemberFromConfig(member)
+	_, err := srv.Members.Update(groupEmail, member.Email, newMember).Do()
+	if err != nil {
+		log.Fatalf("Unable to delete a member: %v", err)
+		return err
+	}
+	return nil
+}
+
 // createGSuiteGroupMemberFromConfig converts a ConfigMember to (Gsuite) admin.Member
 func createGSuiteGroupMemberFromConfig(member *config.MemberConfig) *admin.Member {
 	googleMember := &admin.Member{
@@ -254,10 +268,73 @@ func createGSuiteGroupMemberFromConfig(member *config.MemberConfig) *admin.Membe
 
 // GetListOfOrgUnits returns a list of all current organizational units form the API
 func GetListOfOrgUnits(srv *admin.Service) ([]*admin.OrgUnit, error) {
-	request, err := srv.Orgunits.List("my_customer").Do()
+	request, err := srv.Orgunits.List("my_customer").Type("all").Do()
 	if err != nil {
 		log.Fatalf("Unable to retrieve OrgUnits in domain: %v", err)
 		return nil, err
 	}
 	return request.OrganizationUnits, nil
+}
+
+// CreateOU creates a new org unit in GSuite via their API
+func CreateOU(srv admin.Service, ou *config.OrgUnitConfig) error {
+	newOU := createGSuiteOUFromConfig(ou)
+	_, err := srv.Orgunits.Insert("my_customer", newOU).Do()
+	if err != nil {
+		log.Fatalf("Unable to create an org unit: %v", err)
+		return err
+	}
+	return nil
+}
+
+// DeleteGroup deletes a group in GSuite via their API
+func DeleteOU(srv admin.Service, ou *admin.OrgUnit) error {
+	// the Orgunits.Delete function takes as an argument the full org unit path, but without first slash...
+	var orgUPath []string
+	if ou.OrgUnitPath[0] == '/' {
+		orgUPath = append([]string{}, ou.OrgUnitPath[1:])
+	} else {
+		orgUPath = append([]string{}, ou.OrgUnitPath)
+	}
+
+	err := srv.Orgunits.Delete("my_customer", orgUPath).Do()
+	if err != nil {
+		log.Fatalf("Unable to delete an org unit: %v", err)
+		return err
+	}
+	return nil
+}
+
+// UpdateGroup updates the remote group with config
+func UpdateOU(srv admin.Service, ou *config.OrgUnitConfig) error {
+	updatedOu := createGSuiteOUFromConfig(ou)
+	//orgUPath := append([]string{}, ou.OrgUnitPath)
+	// the Orgunits.Update function takes as an argument the full org unit path, but without first slash...
+	var orgUPath []string
+	if ou.OrgUnitPath[0] == '/' {
+		orgUPath = append([]string{}, ou.OrgUnitPath[1:])
+	} else {
+		orgUPath = append([]string{}, ou.OrgUnitPath)
+	}
+
+	_, err := srv.Orgunits.Update("my_customer", orgUPath, updatedOu).Do()
+	if err != nil {
+		log.Fatalf("Unable to update an org unit: %v", err)
+		return err
+	}
+	return nil
+}
+
+// createGSuiteGroupFromConfig converts a ConfigGroup to (Gsuite) admin.Group
+func createGSuiteOUFromConfig(ou *config.OrgUnitConfig) *admin.OrgUnit {
+	googleOU := &admin.OrgUnit{
+		Name: ou.Name,
+		//OrgUnitPath:       ou.OrgUnitPath,
+		ParentOrgUnitPath: ou.ParentOrgUnitPath,
+	}
+	if ou.Description != "" {
+		googleOU.Description = ou.Description
+	}
+
+	return googleOU
 }

@@ -15,16 +15,16 @@ func ExportConfiguration(ctx context.Context, organization string, clientService
 		Organization: organization,
 	}
 
+	if err := exportOrgUnits(ctx, clientService, cfg); err != nil {
+		return cfg, fmt.Errorf("failed to export org units: %v", err)
+	}
+
 	if err := exportUsers(ctx, clientService, cfg); err != nil {
 		return cfg, fmt.Errorf("failed to export users: %v", err)
 	}
 
 	if err := exportGroups(ctx, clientService, cfg); err != nil {
 		return cfg, fmt.Errorf("failed to export groups: %v", err)
-	}
-
-	if err := exportOrgUnits(ctx, clientService, cfg); err != nil {
-		return cfg, fmt.Errorf("failed to export org units: %v", err)
 	}
 
 	return cfg, nil
@@ -48,6 +48,7 @@ func exportUsers(ctx context.Context, clientService *admin.Service, cfg *config.
 				LastName:       u.Name.FamilyName,
 				PrimaryEmail:   primaryEmail,
 				SecondaryEmail: secondaryEmail,
+				OrgUnitPath:    u.OrgUnitPath,
 			})
 		}
 	}
@@ -102,6 +103,7 @@ func exportOrgUnits(ctx context.Context, clientService *admin.Service, cfg *conf
 				Description:       ou.Description,
 				ParentOrgUnitPath: ou.ParentOrgUnitPath,
 				BlockInheritance:  ou.BlockInheritance,
+				OrgUnitPath:       ou.OrgUnitPath,
 			})
 
 		}

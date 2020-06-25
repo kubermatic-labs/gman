@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/kubermatic-labs/gman/pkg/util"
 	"gopkg.in/yaml.v3"
@@ -22,7 +23,7 @@ type UserConfig struct {
 	LastName       string `yaml:"family_name"`
 	PrimaryEmail   string `yaml:"primary_email"`
 	SecondaryEmail string `yaml:"secondary_email,omitempty"`
-	OrgUnit        string `yaml:"organizational_unit,omitempty"`
+	OrgUnitPath    string `yaml:"org_unit_path,omitempty"`
 }
 
 type GroupConfig struct {
@@ -40,8 +41,9 @@ type MemberConfig struct {
 type OrgUnitConfig struct {
 	Name              string `yaml:"name"`
 	Description       string `yaml:"description,omitempty"`
-	ParentOrgUnitPath string `yaml:"parentOrgUnitPath,omitempty"`
-	BlockInheritance  bool   `yaml:"blockInheritance,omitempty"`
+	ParentOrgUnitPath string `yaml:"parent_org_unit_path,omitempty"`
+	OrgUnitPath       string `yaml:"org_unit_path,omitempty"`
+	BlockInheritance  bool   `yaml:"block_nheritance,omitempty"`
 }
 
 func LoadFromFile(filename string) (*Config, error) {
@@ -80,18 +82,18 @@ func (c *Config) Validate() error {
 		return errors.New("no organization configured")
 	}
 
+	re := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+
 	//validate users
 	userEmails := []string{}
 	for _, user := range c.Users {
 		if util.StringSliceContains(userEmails, user.PrimaryEmail) {
-			log.Fatal("Validation failes: duplicate user defined (user: " + user.PrimaryEmail + ")")
+			log.Fatal("Validation failed: duplicate user defined (user: " + user.PrimaryEmail + ")")
 		}
 
 		if user.PrimaryEmail == user.SecondaryEmail {
 			log.Fatal("Validation failed: user has defined the same primary and secondary email (user: " + user.PrimaryEmail + ")")
 		}
-
-		re := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 		if re.MatchString(user.PrimaryEmail) == false {
 			log.Fatal("Validation failed: invalid primary email (user: " + user.PrimaryEmail + ")")
@@ -106,6 +108,43 @@ func (c *Config) Validate() error {
 	}
 
 	// TODO: validate orgunits & groups
+	// validate groups
+	groupEmails := []string{}
+	for _, group := range c.Groups {
+		if util.StringSliceContains(groupEmails, group.Email) {
+			log.Fatal("Validation failed: duplicate group email defined (" + group.Email + ")")
+		}
+
+		if re.MatchString(group.Email) == false {
+			log.Fatal("Validation failed: invalid group email (" + group.Email + ")")
+		}
+
+		memberEmails := []string{}
+		for _, member := range group.Members {
+			if util.StringSliceContains(memberEmails, member.Email) {
+				log.Fatal("Validation failed: duplicate member defined in a group (group: " + group.Name + ", member: " + member.Email + ")")
+			}
+
+			if !(strings.EqualFold(member.Role, "OWNER") || strings.EqualFold(member.Role, "MANAGER") || strings.EqualFold(member.Role, "MEMBER")) {
+				log.Fatal("Validation failed: wrong member role specified (group: " + group.Name + ", member: " + member.Email + ")")
+			}
+		}
+	}
+
+	// validate org_units
+	ouNames := []string{}
+	for _, ou := range c.OrgUnits {
+		if util.StringSliceContains(ouNames, ou.Name) {
+			log.Fatal("Validation failed: duplicate org unit defined (" + ou.Name + ")")
+		}
+
+		if ou.ParentOrgUnitPath[0] != '/' {
+			log.Fatal("Validation failed: wrong ParentOrgUnitPath specified for org unit (" + ou.Name + ")")
+		}
+		if ou.OrgUnitPath[0] != '/' {
+			log.Fatal("Validation failed: wrong OrgUnitPath specified for org unit (" + ou.Name + ")")
+		}
+	}
 
 	return nil
 }

@@ -97,33 +97,58 @@ Now run *Gman* with the `-export` flag:
 
 ```bash
 $ gman -config myconfig.yaml -export
-2020/06/17 19:17:28 ► Exporting organization myorganization...
-2020/06/17 19:17:28 ⇄ Exporting users from GSuite...
-2020/06/17 19:17:28 ✓ Export successful.
+2020/06/25 18:54:56 ► Exporting organization myorganization...
+2020/06/25 18:54:56 ⇄ Exporting OrgUnits from GSuite...
+2020/06/25 18:54:57 ⇄ Exporting users from GSuite...
+2020/06/25 18:54:57 ⇄ Exporting groups from GSuite...
+2020/06/25 18:54:58 ✓ Export successful.
 ```
 
-Afterwards, the `myconfig.yaml` will contain an exact representation of your users:
+Afterwards, the `myconfig.yaml` will contain an exact representation of your organizational unit, users and groups:
 
 ```yaml
 organization: myorganization
+org_units:
+    - name: Developers
+      description: dedicated org unit for devs
+      parentOrgUnitPath: / 
+      org_unit_path: /Developers 
 users:
     - given_name: Josef
       family_name: K
       primary_email: josef@myorganization.com
       secondary_email: josef@privatedomain.com
+      org_unit_path: /Developers
     - given_name: Gregor
       family_name: Samsa
       primary_email: gregor@myorganization.com
       secondary_email: gregor@privatedomain.com
+      org_unit_path: /
+groups:
+    - name: Team Gman
+      email: teamgman@myorganization.com
+      members:
+        - email: josef@myorganization.com
+          role: OWNER
 ```
 
 ### Validating
 
 It's possible to validate a configuration file for:
 
-- duplicated users (based on primary email),
-- primary and secondary emails being different,
-- if specified emails obey semantical correctness.
+- user config:
+  - duplicated users (based on primary email),
+  - primary and secondary emails being different,
+  - if specified emails obey semantical correctness,
+- organizational unit config: 
+  - duplicated org units,
+  - correct parent org unit path,
+  - correct org unit path,
+- groups config: 
+  - duplicated groups (based on group email),
+  - if specified group email obeys semantical correctness,
+  - valid group members roles,
+  - valid group members emails.
   
 In order to validate the file, run *Gman* with the `-validate` flag:
 
@@ -137,67 +162,84 @@ If this flag is specified, *Gman* performs **only** the config validation. Other
 
 ### Synchronizing
 
-Synchronizing means updating Gsuite's users state to match the given configuration file. Without specifying the `-confirm` flag the changes are not performed:
+Synchronizing means updating Gsuite's state to match the given configuration file. Without specifying the `-confirm` flag the changes are not performed:
 
 ```bash
 $ gman -config myconfig.yaml
-2020/06/17 19:32:28 ✓ Configuration is valid.
-2020/06/17 19:32:28 ► Updating organization Loodse…
-2020/06/17 19:32:28 ⇄ Syncing users
-2020/06/17 19:32:29 ✁ There is no users to delete.
-2020/06/17 19:32:29 ✎ Found users to create: 
-2020/06/17 19:32:29     + Someone New
-2020/06/17 19:32:29 ✎ There is no users to update.
-2020/06/17 19:32:29 ⚠ Run again with -confirm to apply the changes above.
+2020/06/25 18:55:54 ✓ Configuration is valid.
+2020/06/25 18:55:54 ► Updating organization myorganization...
+2020/06/25 18:55:54 ⇄ Syncing organizational units
+2020/06/25 18:55:56 ✁ There is no org units to delete.
+2020/06/25 18:55:56 ✎ There is no org units to create.
+2020/06/25 18:55:56 ✎ There is no org units to update.
+2020/06/25 18:55:56 ⇄ Syncing users
+2020/06/25 18:55:56 ✁ There is no users to delete.
+2020/06/25 18:55:56 ✎ There is no users to create.
+2020/06/25 18:55:56 ✎ There is no users to update.
+2020/06/25 18:55:56 ⇄ Syncing groups
+2020/06/25 18:55:57 ✁ There is no groups to delete.
+2020/06/25 18:55:57 ✎ There is no groups to create.
+2020/06/25 18:55:57 ✎ There is no groups to update.
+2020/06/25 18:55:57 ⚠ Run again with -confirm to apply the changes above.
 ```
 
 ### Confirming synchronization
 
 When running *Gman* with the `-confirm` flag the magic of synchronization happens!
 
- - The users - that have been depicted to be present in config file, but not in Gsuite - are automatically created:
+ - The users, groups and org units - that have been depicted to be present in config file, but not in Gsuite - are automatically created:
 
 ```bash
 $ gman -config myconfig.yaml -confirm
-2020/06/17 19:34:13 ✓ Configuration is valid.
-2020/06/17 19:34:13 ► Updating organization myorganization…
-2020/06/17 19:34:13 ⇄ Syncing users
-2020/06/17 19:34:14 ✁ There is no users to delete.
-2020/06/17 19:34:14 ✎ Found users to create: 
-2020/06/17 19:34:14     + Someone New
-2020/06/17 19:34:14 ✎ There is no users to update.
-2020/06/17 19:34:14 Created user: someone@myorganization.training 
-2020/06/17 19:34:14 ✓ Users successfully synchronized.
+2020/06/25 18:59:47 ✓ Configuration is valid.
+2020/06/25 18:59:47 ► Updating organization myorganization...
+2020/06/25 18:59:47 ⇄ Syncing organizational units
+2020/06/25 18:59:48 ✎ Creating...
+2020/06/25 18:59:49     + org unit: NewOrgUnit
+2020/06/25 18:59:49 ⇄ Syncing users
+2020/06/25 18:59:50 ✎ Creating...
+2020/06/25 18:59:51     + user: someonenew@myorganization.com
+2020/06/25 18:59:51 ⇄ Syncing groups
+2020/06/25 18:59:51 ✎ Creating...
+2020/06/25 18:59:54     + group: NewGroup
+2020/06/25 18:59:54 ✓ Organization successfully synchronized.
 ```
 
-- The users - that are present in Gsuite, but not in config file - are automatically deleted:
+- The users, groups and org units - that hold different values in the config file, than they have in Gsuite - are automatically updated:
 
 ```bash
 gman -config myconfig.yaml -confirm
-2020/06/17 19:37:39 ✓ Configuration is valid.
-2020/06/17 19:37:39 ► Updating organization Loodse…
-2020/06/17 19:37:39 ⇄ Syncing users
-2020/06/17 19:37:39 ✁ Found users to delete: 
-2020/06/17 19:37:39     - Someone ToDelete
-2020/06/17 19:37:39 ✎ There is no users to create.
-2020/06/17 19:37:39 ✎ There is no users to update.
-2020/06/17 19:37:40 Deleted user: someone.new@loodse.training 
-2020/06/17 19:37:40 ✓ Users successfully synchronized.
+2020/06/25 19:01:33 ✓ Configuration is valid.
+2020/06/25 19:01:33 ► Updating organization myorganization...
+2020/06/25 19:01:33 ⇄ Syncing organizational units
+2020/06/25 19:01:34 ✎ Updating...
+2020/06/25 19:01:35     ~ org unit: NewOrgUnit 
+2020/06/25 19:01:35 ⇄ Syncing users
+2020/06/25 19:01:36 ✎ Updating...
+2020/06/25 19:01:36     ~ user: someonenew@myorganization.com
+2020/06/25 19:01:36 ⇄ Syncing groups
+2020/06/25 19:01:37 ✎ Updating...
+2020/06/25 19:01:38     ~ group: UpdatedGroup
+2020/06/25 19:01:38 ✓ Organization successfully synchronized.
 ```
 
-- The users - that hold different values in the config file, than they have in Gsuite - are automatically updated:
+- The users, groups and org units - that are present in Gsuite, but not in config file - are automatically deleted:
 
 ```bash
 $ gman -config myconfig.yaml -confirm
-2020/06/17 19:36:12 ✓ Configuration is valid.
-2020/06/17 19:36:12 ► Updating organization Loodse…
-2020/06/17 19:36:12 ⇄ Syncing users
-2020/06/17 19:36:13 ✁ There is no users to delete.
-2020/06/17 19:36:13 ✎ There is no users to create.
-2020/06/17 19:36:13 ✎ Found users to update: 
-2020/06/17 19:36:13     ~ Someone ChangedName
-2020/06/17 19:36:13 Updated user: someone.new@loodse.training 
-2020/06/17 19:36:13 ✓ Users successfully synchronized.
+2020/06/25 19:06:04 ✓ Configuration is valid.
+2020/06/25 19:06:04 ► Updating organization myorganization...
+2020/06/25 19:06:04 ⇄ Syncing organizational units
+2020/06/25 19:06:06 ✁ Deleting...
+2020/06/25 19:06:07     - org unit: NewOrgUnit
+2020/06/25 19:06:07 ⇄ Syncing users
+2020/06/25 19:06:08 ✁ Deleting...
+2020/06/25 19:06:08     - user: someonenew@myorganization.com
+2020/06/25 19:06:08 ⇄ Syncing groups
+2020/06/25 19:06:09 ✁ Deleting...
+2020/06/25 19:06:10     - group: test group
+2020/06/25 19:06:11     - group: UpdatedGroup
+2020/06/25 19:06:11 ✓ Organization successfully synchronized.
 ```
 
 ## Limitations

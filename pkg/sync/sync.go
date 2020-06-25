@@ -10,24 +10,11 @@ import (
 	admin "google.golang.org/api/admin/directory/v1"
 )
 
-type UpdatedGsuite struct {
-	// users
-	usersToDelete []*admin.User
-	usersToCreate []config.UserConfig
-	usersToUpdate []config.UserConfig
-	// groups
-	groupsToDelete []*admin.Group
-	groupsToCreate []config.GroupConfig
-	groupsToUpdate []config.GroupConfig
-	// orgUnits
-	orgUnitsToDelete []*admin.OrgUnit
-	orgUnitsToCreate []config.OrgUnitConfig
-	orgUnitsToUpdate []config.OrgUnitConfig
-}
-
 func SyncConfiguration(ctx context.Context, cfg *config.Config, clientService *admin.Service, confirm bool) error {
-	//var updatedConfig *UpdatedGsuite
 
+	if err := SyncOrgUnits(ctx, clientService, cfg, confirm); err != nil {
+		return fmt.Errorf("failed to sync users: %v", err)
+	}
 	if err := SyncUsers(ctx, clientService, cfg, confirm); err != nil {
 		return fmt.Errorf("failed to sync users: %v", err)
 	}
@@ -68,7 +55,8 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 					_, workEmail := glib.GetUserEmails(currentUser)
 					if configUser.LastName != currentUser.Name.FamilyName ||
 						configUser.FirstName != currentUser.Name.GivenName ||
-						configUser.SecondaryEmail != workEmail {
+						configUser.SecondaryEmail != workEmail ||
+						configUser.OrgUnitPath != currentUser.OrgUnitPath {
 						usersToUpdate = append(usersToUpdate, configUser)
 					}
 					break
@@ -154,6 +142,7 @@ type groupUpdate struct {
 	groupToUpdate   config.GroupConfig
 	membersToAdd    []*config.MemberConfig
 	membersToRemove []*admin.Member
+	membersToUpdate []*config.MemberConfig
 }
 
 // SyncGroups
@@ -185,10 +174,11 @@ func SyncGroups(ctx context.Context, clientService *admin.Service, cfg *config.C
 					found = true
 					// group is existing & should exist, so check if needs an update
 					var upGroup groupUpdate
-					upGroup.membersToAdd, upGroup.membersToRemove = SyncMembers(ctx, clientService, &cfgGroup, currGroup)
+					upGroup.membersToAdd, upGroup.membersToRemove, upGroup.membersToUpdate = SyncMembers(ctx, clientService, &cfgGroup, currGroup)
 					if cfgGroup.Name != currGroup.Name ||
 						cfgGroup.Description != currGroup.Description ||
-						upGroup.membersToAdd != nil || upGroup.membersToRemove != nil {
+						upGroup.membersToAdd != nil || upGroup.membersToRemove != nil ||
+						upGroup.membersToUpdate != nil {
 						upGroup.groupToUpdate = cfgGroup
 						groupsToUpdate = append(groupsToUpdate, upGroup)
 					}
@@ -234,8 +224,9 @@ func SyncGroups(ctx context.Context, clientService *admin.Service, cfg *config.C
 		if groupsToUpdate != nil {
 			log.Println("✎ Updating...")
 			for _, gr := range groupsToUpdate {
-				//glib.UpdateGroup(*clientService, &g)
+				glib.UpdateGroup(*clientService, &gr.groupToUpdate)
 				log.Printf("\t~ group: %s\n", gr.groupToUpdate.Name)
+
 				for _, mem := range gr.membersToAdd {
 					log.Printf("\t\t+ %s \n", mem.Email)
 					glib.AddNewMember(*clientService, gr.groupToUpdate.Email, mem)
@@ -244,6 +235,11 @@ func SyncGroups(ctx context.Context, clientService *admin.Service, cfg *config.C
 				for _, mem := range gr.membersToRemove {
 					log.Printf("\t\t- %s \n", mem.Email)
 					glib.RemoveMember(*clientService, gr.groupToUpdate.Email, mem)
+				}
+				for _, mem := range gr.membersToUpdate {
+					log.Printf("\t\t~ %s \n", mem.Email)
+					glib.UpdateMembership(*clientService, gr.groupToUpdate.Email, mem)
+
 				}
 			}
 		}
@@ -286,8 +282,9 @@ func SyncGroups(ctx context.Context, clientService *admin.Service, cfg *config.C
 	return nil
 }
 
-func SyncMembers(ctx context.Context, clientService *admin.Service, cfgGr *config.GroupConfig, curGr *admin.Group) ([]*config.MemberConfig, []*admin.Member) {
+func SyncMembers(ctx context.Context, clientService *admin.Service, cfgGr *config.GroupConfig, curGr *admin.Group) ([]*config.MemberConfig, []*admin.Member, []*config.MemberConfig) {
 	var memToAdd []*config.MemberConfig
+	var memToUpdate []*config.MemberConfig
 	var memToRemove []*admin.Member
 	currentMembers, _ := glib.GetListOfMembers(clientService, curGr)
 	// check members to add
@@ -296,6 +293,10 @@ func SyncMembers(ctx context.Context, clientService *admin.Service, cfgGr *confi
 		for _, currMember := range currentMembers {
 			if currMember.Email == member.Email {
 				foundMem = true
+				// check for update
+				if currMember.Role != member.Role {
+					memToUpdate = append(memToUpdate, &member)
+				}
 				break
 			}
 		}
@@ -317,5 +318,112 @@ func SyncMembers(ctx context.Context, clientService *admin.Service, cfgGr *confi
 		}
 	}
 
-	return memToAdd, memToRemove
+	return memToAdd, memToRemove, memToUpdate
+}
+
+func SyncOrgUnits(ctx context.Context, clientService *admin.Service, cfg *config.Config, confirm bool) error {
+	var (
+		ouToDelete []*admin.OrgUnit
+		ouToCreate []config.OrgUnitConfig
+		ouToUpdate []config.OrgUnitConfig
+	)
+
+	log.Println("⇄ Syncing organizational units")
+	// get the current users array
+	currentOus, err := glib.GetListOfOrgUnits(clientService)
+	if err != nil {
+		return fmt.Errorf("⚠ failed to get current org units: %v", err)
+	}
+	// config defined users
+	configOus := cfg.OrgUnits
+
+	if len(currentOus) == 0 {
+		log.Println("⚠ No organizational units found.")
+	} else {
+		// GET ORG UNITS TO DELETE & UPDATE
+		for _, currentOu := range currentOus {
+			found := false
+			for _, configOu := range configOus {
+				if configOu.Name == currentOu.Name {
+					found = true
+					// OU is existing & should exist, so check if needs an update
+					if configOu.Description != currentOu.Description ||
+						configOu.ParentOrgUnitPath != currentOu.ParentOrgUnitPath ||
+						configOu.BlockInheritance != currentOu.BlockInheritance {
+						ouToUpdate = append(ouToUpdate, configOu)
+					}
+					break
+				}
+			}
+			if !found {
+				ouToDelete = append(ouToDelete, currentOu)
+			}
+		}
+	}
+	// GET ORG UNITS TO CREATE
+	for _, configOu := range configOus {
+		found := false
+		for _, currentOu := range currentOus {
+			if currentOu.Name == configOu.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			ouToCreate = append(ouToCreate, configOu)
+		}
+	}
+
+	if confirm {
+		if ouToCreate != nil {
+			log.Println("✎ Creating...")
+			for _, ou := range ouToCreate {
+				glib.CreateOU(*clientService, &ou)
+				log.Printf("\t+ org unit: %s\n", ou.Name)
+			}
+		}
+		if ouToDelete != nil {
+			log.Println("✁ Deleting...")
+			for _, ou := range ouToDelete {
+				glib.DeleteOU(*clientService, ou)
+				log.Printf("\t- org unit: %s\n", ou.Name)
+			}
+		}
+		if ouToUpdate != nil {
+			log.Println("✎ Updating...")
+			for _, ou := range ouToUpdate {
+				glib.UpdateOU(*clientService, &ou)
+				log.Printf("\t~ org unit: %s \n", ou.Name)
+			}
+		}
+	} else {
+		if ouToDelete == nil {
+			log.Println("✁ There is no org units to delete.")
+		} else {
+			log.Println("✁ Found org units to delete: ")
+			for _, ou := range ouToDelete {
+				log.Printf("\t- %s \n", ou.Name)
+			}
+		}
+
+		if ouToCreate == nil {
+			log.Println("✎ There is no org units to create.")
+		} else {
+			log.Println("✎ Found org units to create: ")
+			for _, ou := range ouToCreate {
+				log.Printf("\t+ %s \n", ou.Name)
+			}
+		}
+
+		if ouToUpdate == nil {
+			log.Println("✎ There is no org units to update.")
+		} else {
+			log.Println("✎ Found org units to update: ")
+			for _, ou := range ouToUpdate {
+				log.Printf("\t~ %s\n", ou.Name)
+			}
+		}
+	}
+	return nil
+
 }

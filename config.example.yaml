@@ -5,9 +5,10 @@ organization: myorganization
 # The list of org units in this organization. Org units not defined
 # here will be deleted during synchronization.
 org_units:
-    - name: example unit
+    - name: ExampleUnit
       description: test org unit 
       parentOrgUnitPath: / # single slash indicates the parent org
+      org_unit_path: /ExampleUnit # single slash followed by the name of the OU
 
 # The list of users in this organization. Users not defined
 # here will be deleted during synchronization. 
@@ -19,11 +20,14 @@ users:
     primary_email: horst@myorganization.com 
     # secondary email is used to send out an invitation
     secondary_email: horst@privateaddress.com
+    # org unit path indicates in which OU the user should be created
+    org_unit_path: / # single slash indicates parent org
 
   - given_name: Gregor
     family_name: Samsa
     primary_email: gregor@myorganization.com
     secondary_email: gregor@privatedomain.com
+    org_unit_path: /ExampleUnit # create user in beforehand specified OU
 
 # The list of groups and its members in this organization. 
 # Groups not defined here will be deleted during synchronization. 
@@ -33,6 +37,6 @@ groups:
       email: testgroup@myorganization.com
       members:
         - email: horst@myorganization.com
-          role: MEMBER
+          role: MEMBER # role can be MEMBER, OWNER or MANAGER
         - email: gregor@myorganization.com
           role: OWNER
