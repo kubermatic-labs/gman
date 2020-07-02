@@ -68,8 +68,8 @@ func GetUserEmails(user *admin.User) (string, string) {
 	return primEmail, secEmail
 }
 
-// CreateNewUser creates a new user in GSuite via their API
-func CreateNewUser(srv admin.Service, user *config.UserConfig) error {
+// CreateUser creates a new user in GSuite via their API
+func CreateUser(srv admin.Service, user *config.UserConfig) error {
 	// generate a rand password
 	pass, err := password.Generate(20, 5, 5, false, false)
 	if err != nil {
@@ -109,7 +109,7 @@ func UpdateUser(srv admin.Service, user *config.UserConfig) error {
 	return nil
 }
 
-// createGSuiteUserFromConfig converts a ConfigUser to (Gsuite) admin.User
+// createGSuiteUserFromConfig converts a ConfigUser to (GSuite) admin.User
 func createGSuiteUserFromConfig(user *config.UserConfig) *admin.User {
 	googleUser := &admin.User{
 		Name: &admin.UserName{
@@ -184,7 +184,7 @@ func UpdateGroup(srv admin.Service, group *config.GroupConfig) error {
 	return nil
 }
 
-// createGSuiteGroupFromConfig converts a ConfigGroup to (Gsuite) admin.Group
+// createGSuiteGroupFromConfig converts a ConfigGroup to (GSuite) admin.Group
 func createGSuiteGroupFromConfig(group *config.GroupConfig) *admin.Group {
 	googleGroup := &admin.Group{
 		Name:  group.Name,
@@ -253,7 +253,7 @@ func UpdateMembership(srv admin.Service, groupEmail string, member *config.Membe
 	return nil
 }
 
-// createGSuiteGroupMemberFromConfig converts a ConfigMember to (Gsuite) admin.Member
+// createGSuiteGroupMemberFromConfig converts a ConfigMember to (GSuite) admin.Member
 func createGSuiteGroupMemberFromConfig(member *config.MemberConfig) *admin.Member {
 	googleMember := &admin.Member{
 		Email: member.Email,
@@ -276,8 +276,8 @@ func GetListOfOrgUnits(srv *admin.Service) ([]*admin.OrgUnit, error) {
 	return request.OrganizationUnits, nil
 }
 
-// CreateOU creates a new org unit in GSuite via their API
-func CreateOU(srv admin.Service, ou *config.OrgUnitConfig) error {
+// CreateOrgUnit creates a new org unit in GSuite via their API
+func CreateOrgUnit(srv admin.Service, ou *config.OrgUnitConfig) error {
 	newOU := createGSuiteOUFromConfig(ou)
 	_, err := srv.Orgunits.Insert("my_customer", newOU).Do()
 	if err != nil {
@@ -287,8 +287,8 @@ func CreateOU(srv admin.Service, ou *config.OrgUnitConfig) error {
 	return nil
 }
 
-// DeleteGroup deletes a group in GSuite via their API
-func DeleteOU(srv admin.Service, ou *admin.OrgUnit) error {
+// DeleteOrgUnit deletes a group in GSuite via their API
+func DeleteOrgUnit(srv admin.Service, ou *admin.OrgUnit) error {
 	// the Orgunits.Delete function takes as an argument the full org unit path, but without first slash...
 	var orgUPath []string
 	if ou.OrgUnitPath[0] == '/' {
@@ -305,10 +305,9 @@ func DeleteOU(srv admin.Service, ou *admin.OrgUnit) error {
 	return nil
 }
 
-// UpdateGroup updates the remote group with config
-func UpdateOU(srv admin.Service, ou *config.OrgUnitConfig) error {
+// UpdateOrgUnit updates the remote org unit with config
+func UpdateOrgUnit(srv admin.Service, ou *config.OrgUnitConfig) error {
 	updatedOu := createGSuiteOUFromConfig(ou)
-	//orgUPath := append([]string{}, ou.OrgUnitPath)
 	// the Orgunits.Update function takes as an argument the full org unit path, but without first slash...
 	var orgUPath []string
 	if ou.OrgUnitPath[0] == '/' {
@@ -325,7 +324,7 @@ func UpdateOU(srv admin.Service, ou *config.OrgUnitConfig) error {
 	return nil
 }
 
-// createGSuiteGroupFromConfig converts a ConfigGroup to (Gsuite) admin.Group
+// createGSuiteOUFromConfig converts a OrgUnitConfig to (GSuite) admin.OrgUnit
 func createGSuiteOUFromConfig(ou *config.OrgUnitConfig) *admin.OrgUnit {
 	googleOU := &admin.OrgUnit{
 		Name: ou.Name,

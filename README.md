@@ -1,6 +1,6 @@
 # gman
 
-*gman links all Gsuite accounts with the matching user-list storage in form of a YAML. It is based on the [Aquayman](https://github.com/kubermatic-labs/aquayman) tool.*
+*gman links all GSuite accounts with the matching user-list storage in form of a YAML. It is based on the [Aquayman](https://github.com/kubermatic-labs/aquayman) tool.*
 
 **Features:**
 
@@ -85,7 +85,7 @@ After the completion of the steps above, *Gman* can perform for you:
 
 ### Exporting
 
-To get started, *Gman* can export your existing Gsuite users into a configuration file.
+To get started, *Gman* can export your existing GSuite users into a configuration file.
 For this to work, prepare a fresh configuration file and put your organisation name in it.
 You can skip everything else:
 
@@ -109,27 +109,27 @@ Afterwards, the `myconfig.yaml` will contain an exact representation of your org
 ```yaml
 organization: myorganization
 org_units:
-    - name: Developers
-      description: dedicated org unit for devs
-      parentOrgUnitPath: / 
-      org_unit_path: /Developers 
+  - name: Developers
+    description: dedicated org unit for devs
+    parentOrgUnitPath: / 
+    org_unit_path: /Developers 
 users:
-    - given_name: Josef
-      family_name: K
-      primary_email: josef@myorganization.com
-      secondary_email: josef@privatedomain.com
-      org_unit_path: /Developers
-    - given_name: Gregor
-      family_name: Samsa
-      primary_email: gregor@myorganization.com
-      secondary_email: gregor@privatedomain.com
-      org_unit_path: /
+  - given_name: Josef
+    family_name: K
+    primary_email: josef@myorganization.com
+    secondary_email: josef@privatedomain.com
+    org_unit_path: /Developers
+  - given_name: Gregor
+    family_name: Samsa
+    primary_email: gregor@myorganization.com
+    secondary_email: gregor@privatedomain.com
+    org_unit_path: /
 groups:
-    - name: Team Gman
-      email: teamgman@myorganization.com
-      members:
-        - email: josef@myorganization.com
-          role: OWNER
+  - name: Team Gman
+    email: teamgman@myorganization.com
+    members:
+      - email: josef@myorganization.com
+        role: OWNER
 ```
 
 ### Validating
@@ -162,7 +162,7 @@ If this flag is specified, *Gman* performs **only** the config validation. Other
 
 ### Synchronizing
 
-Synchronizing means updating Gsuite's state to match the given configuration file. Without specifying the `-confirm` flag the changes are not performed:
+Synchronizing means updating GSuite's state to match the given configuration file. Without specifying the `-confirm` flag the changes are not performed:
 
 ```bash
 $ gman -config myconfig.yaml
@@ -187,7 +187,7 @@ $ gman -config myconfig.yaml
 
 When running *Gman* with the `-confirm` flag the magic of synchronization happens!
 
- - The users, groups and org units - that have been depicted to be present in config file, but not in Gsuite - are automatically created:
+ - The users, groups and org units - that have been depicted to be present in config file, but not in GSuite - are automatically created:
 
 ```bash
 $ gman -config myconfig.yaml -confirm
@@ -205,7 +205,7 @@ $ gman -config myconfig.yaml -confirm
 2020/06/25 18:59:54 ✓ Organization successfully synchronized.
 ```
 
-- The users, groups and org units - that hold different values in the config file, than they have in Gsuite - are automatically updated:
+- The users, groups and org units - that hold different values in the config file, than they have in GSuite - are automatically updated:
 
 ```bash
 gman -config myconfig.yaml -confirm
@@ -223,7 +223,7 @@ gman -config myconfig.yaml -confirm
 2020/06/25 19:01:38 ✓ Organization successfully synchronized.
 ```
 
-- The users, groups and org units - that are present in Gsuite, but not in config file - are automatically deleted:
+- The users, groups and org units - that are present in GSuite, but not in config file - are automatically deleted:
 
 ```bash
 $ gman -config myconfig.yaml -confirm
@@ -249,7 +249,7 @@ $ gman -config myconfig.yaml -confirm
 Due to the fact that it is impossible to automate the send out of the login information email via Google API there are two possibilities to enable the first log in of the new users: 
 
 - manually send the login information email from admin console via _RESET PASSWORD_ option (follow instructions on [this official Google documentation](https://support.google.com/a/answer/33319?hl=en))
-- set up a password recovery for users (follow [this official Google documentation](https://support.google.com/a/answer/33382?p=accnt_recovery_users&visit_id=637279854011127407-389630162&rd=1&hl=en) to perform it). *Gman* sets te secondary email address as a recovery email; hence, in your onboarding message you should inform the users about their new Gsuite email address and that on the first login, the _Forgot password?_ option should be chosen, so the verification code can be sent to to the private secondary email. 
+- set up a password recovery for users (follow [this official Google documentation](https://support.google.com/a/answer/33382?p=accnt_recovery_users&visit_id=637279854011127407-389630162&rd=1&hl=en) to perform it). *Gman* sets te secondary email address as a recovery email; hence, in your onboarding message you should inform the users about their new GSuite email address and that on the first login, the _Forgot password?_ option should be chosen, so the verification code can be sent to to the private secondary email. 
 
 ## Changelog
 

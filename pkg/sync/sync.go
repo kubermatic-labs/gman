@@ -85,7 +85,7 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 		if usersToCreate != nil {
 			log.Println("✎ Creating...")
 			for _, user := range usersToCreate {
-				glib.CreateNewUser(*clientService, &user)
+				glib.CreateUser(*clientService, &user)
 				log.Printf("\t+ user: %s\n", user.PrimaryEmail)
 			}
 		}
@@ -378,21 +378,21 @@ func SyncOrgUnits(ctx context.Context, clientService *admin.Service, cfg *config
 		if ouToCreate != nil {
 			log.Println("✎ Creating...")
 			for _, ou := range ouToCreate {
-				glib.CreateOU(*clientService, &ou)
+				glib.CreateOrgUnit(*clientService, &ou)
 				log.Printf("\t+ org unit: %s\n", ou.Name)
 			}
 		}
 		if ouToDelete != nil {
 			log.Println("✁ Deleting...")
 			for _, ou := range ouToDelete {
-				glib.DeleteOU(*clientService, ou)
+				glib.DeleteOrgUnit(*clientService, ou)
 				log.Printf("\t- org unit: %s\n", ou.Name)
 			}
 		}
 		if ouToUpdate != nil {
 			log.Println("✎ Updating...")
 			for _, ou := range ouToUpdate {
-				glib.UpdateOU(*clientService, &ou)
+				glib.UpdateOrgUnit(*clientService, &ou)
 				log.Printf("\t~ org unit: %s \n", ou.Name)
 			}
 		}

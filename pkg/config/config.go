@@ -88,20 +88,20 @@ func (c *Config) Validate() error {
 	userEmails := []string{}
 	for _, user := range c.Users {
 		if util.StringSliceContains(userEmails, user.PrimaryEmail) {
-			log.Fatal("Validation failed: duplicate user defined (user: " + user.PrimaryEmail + ")")
+			log.Fatalf("Validation failed: duplicate user defined (user: %s)", user.PrimaryEmail)
 		}
 
 		if user.PrimaryEmail == user.SecondaryEmail {
-			log.Fatal("Validation failed: user has defined the same primary and secondary email (user: " + user.PrimaryEmail + ")")
+			log.Fatalf("Validation failed: user has defined the same primary and secondary email (user: %s)", user.PrimaryEmail)
 		}
 
 		if re.MatchString(user.PrimaryEmail) == false {
-			log.Fatal("Validation failed: invalid primary email (user: " + user.PrimaryEmail + ")")
+			log.Fatalf("Validation failed: invalid primary email (user: %s)", user.PrimaryEmail)
 		}
 
 		if user.SecondaryEmail != "" {
 			if re.MatchString(user.SecondaryEmail) == false {
-				log.Fatal("Validation failed: invalid secondary email " + user.SecondaryEmail + " (user: " + user.PrimaryEmail + ")")
+				log.Fatalf("Validation failed: invalid secondary email (user: %s)", user.PrimaryEmail)
 			}
 		}
 		userEmails = append(userEmails, user.PrimaryEmail)
@@ -112,21 +112,21 @@ func (c *Config) Validate() error {
 	groupEmails := []string{}
 	for _, group := range c.Groups {
 		if util.StringSliceContains(groupEmails, group.Email) {
-			log.Fatal("Validation failed: duplicate group email defined (" + group.Email + ")")
+			log.Fatalf("Validation failed: duplicate group email defined (%s)", group.Email)
 		}
 
 		if re.MatchString(group.Email) == false {
-			log.Fatal("Validation failed: invalid group email (" + group.Email + ")")
+			log.Fatalf("Validation failed: invalid group email (%s)", group.Email)
 		}
 
 		memberEmails := []string{}
 		for _, member := range group.Members {
 			if util.StringSliceContains(memberEmails, member.Email) {
-				log.Fatal("Validation failed: duplicate member defined in a group (group: " + group.Name + ", member: " + member.Email + ")")
+				log.Fatalf("Validation failed: duplicate member defined in a group (group: %s, member: %s)", group.Name, member.Email)
 			}
 
 			if !(strings.EqualFold(member.Role, "OWNER") || strings.EqualFold(member.Role, "MANAGER") || strings.EqualFold(member.Role, "MEMBER")) {
-				log.Fatal("Validation failed: wrong member role specified (group: " + group.Name + ", member: " + member.Email + ")")
+				log.Fatalf("Validation failed: wrong member role specified (group: %s, member: %s)", group.Name, member.Email)
 			}
 		}
 	}
@@ -135,14 +135,14 @@ func (c *Config) Validate() error {
 	ouNames := []string{}
 	for _, ou := range c.OrgUnits {
 		if util.StringSliceContains(ouNames, ou.Name) {
-			log.Fatal("Validation failed: duplicate org unit defined (" + ou.Name + ")")
+			log.Fatalf("Validation failed: duplicate org unit defined (%s)", ou.Name)
 		}
 
 		if ou.ParentOrgUnitPath[0] != '/' {
-			log.Fatal("Validation failed: wrong ParentOrgUnitPath specified for org unit (" + ou.Name + ")")
+			log.Fatalf("Validation failed: wrong ParentOrgUnitPath specified for org unit (%s)", ou.Name)
 		}
 		if ou.OrgUnitPath[0] != '/' {
-			log.Fatal("Validation failed: wrong OrgUnitPath specified for org unit (" + ou.Name + ")")
+			log.Fatalf("Validation failed: wrong OrgUnitPath specified for org unit (%s)", ou.Name)
 		}
 	}
 

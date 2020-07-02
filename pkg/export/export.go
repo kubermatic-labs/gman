@@ -72,8 +72,8 @@ func exportGroups(ctx context.Context, clientService *admin.Service, cfg *config
 				Name:        g.Name,
 				Email:       g.Email,
 				Description: g.Description,
+				Members:     []config.MemberConfig{},
 			}
-			thisGroup.Members = make([]config.MemberConfig, 0) // dont panic, we allocate you memory
 			for _, m := range members {
 				thisGroup.Members = append(thisGroup.Members, config.MemberConfig{
 					Email: m.Email,
@@ -89,7 +89,7 @@ func exportGroups(ctx context.Context, clientService *admin.Service, cfg *config
 }
 
 func exportOrgUnits(ctx context.Context, clientService *admin.Service, cfg *config.Config) error {
-	log.Println("⇄ Exporting OrgUnits from GSuite...")
+	log.Println("⇄ Exporting organizational units from GSuite...")
 	// get the users array
 	orgUnits, _ := glib.GetListOfOrgUnits(clientService)
 
