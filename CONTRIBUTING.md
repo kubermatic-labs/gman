@@ -12,7 +12,7 @@ Origin (DCO). This document was created by the Linux Kernel community and is a
 simple statement that you, as a contributor, have the legal right to make the
 contribution. See the [DCO](DCO) file for details.
 
-Any copyright notices in this repo should specify the authors as "the Kubermatic Aquayman project contributors".
+Any copyright notices in this repo should specify the authors as "the Kubermatic Gman project contributors".
 
 To sign your work, just add a line like this at the end of your commit message:
 
@@ -26,7 +26,7 @@ By doing this you state that you can certify the following (from https://develop
 
 ## Email and Chat
 
-The Aquayman project currently uses the general Kubermatic email list and Slack channel:
+The Gman project currently uses the general Kubermatic email list and Slack channel:
 - Email: [Kubermatic-dev](https://groups.google.com/forum/#!forum/kubermatic-dev)
 - Slack: #[Slack](http://slack.kubermatic.io/) on Slack
 
