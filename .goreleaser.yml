@@ -1,0 +1,59 @@
+project_name: gman
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+
+archives:
+  - id: gman
+    format: zip
+    files:
+      - README.md
+      - LICENSE
+      - config.example.yaml
+
+release:
+  prerelease: true
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ .Tag }}-snapshot"
+
+# to push to quay
+dockers:
+  -
+    # GOOS of the built binary that should be used.
+    goos: linux
+
+    # GOARCH of the built binary that should be used.
+    goarch: amd64
+
+    # Name templates of the built binaries that should be used.
+    binaries:
+    - gman
+
+    # Templates of the Docker image names.
+    image_templates:
+    - "quay.io/kubermatic-labs/gman:{{ .Tag }}"
+    
+    # Skips the docker push. Could be useful if you also do draft releases.
+    skip_push: false
+
+    # Path to the Dockerfile (from the project root).
+    dockerfile: Dockerfile
+
+    # If your Dockerfile copies files other than the binary itself,
+    # you should list them here as well.
+    # the paths here are relative to the folder in which goreleaser is being run.
+    #extra_files:
+    #- README.md
+    #- LICENSE
+    #- config.example.yaml 

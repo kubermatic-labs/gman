@@ -125,7 +125,7 @@ func main() {
 	}
 
 	if confirm {
-		log.Println("✓ Users successfully synchronized.")
+		log.Println("✓ Organization successfully synchronized.")
 	} else {
 		log.Println("⚠ Run again with -confirm to apply the changes above.")
 	}

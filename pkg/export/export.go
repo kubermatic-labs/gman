@@ -15,8 +15,16 @@ func ExportConfiguration(ctx context.Context, organization string, clientService
 		Organization: organization,
 	}
 
+	if err := exportOrgUnits(ctx, clientService, cfg); err != nil {
+		return cfg, fmt.Errorf("failed to export org units: %v", err)
+	}
+
 	if err := exportUsers(ctx, clientService, cfg); err != nil {
 		return cfg, fmt.Errorf("failed to export users: %v", err)
+	}
+
+	if err := exportGroups(ctx, clientService, cfg); err != nil {
+		return cfg, fmt.Errorf("failed to export groups: %v", err)
 	}
 
 	return cfg, nil
@@ -40,7 +48,64 @@ func exportUsers(ctx context.Context, clientService *admin.Service, cfg *config.
 				LastName:       u.Name.FamilyName,
 				PrimaryEmail:   primaryEmail,
 				SecondaryEmail: secondaryEmail,
+				OrgUnitPath:    u.OrgUnitPath,
 			})
+		}
+	}
+
+	return nil
+}
+
+func exportGroups(ctx context.Context, clientService *admin.Service, cfg *config.Config) error {
+	log.Println("⇄ Exporting groups from GSuite...")
+	// get the groups array
+	groups, _ := glib.GetListOfGroups(clientService)
+	var members []*admin.Member
+
+	// save to file
+	if len(groups) == 0 {
+		log.Println("⚠ No groups found.")
+	} else {
+		for _, g := range groups {
+			members, _ = glib.GetListOfMembers(clientService, g)
+			thisGroup := config.GroupConfig{
+				Name:        g.Name,
+				Email:       g.Email,
+				Description: g.Description,
+				Members:     []config.MemberConfig{},
+			}
+			for _, m := range members {
+				thisGroup.Members = append(thisGroup.Members, config.MemberConfig{
+					Email: m.Email,
+					Role:  m.Role,
+				})
+
+			}
+			cfg.Groups = append(cfg.Groups, thisGroup)
+		}
+	}
+
+	return nil
+}
+
+func exportOrgUnits(ctx context.Context, clientService *admin.Service, cfg *config.Config) error {
+	log.Println("⇄ Exporting organizational units from GSuite...")
+	// get the users array
+	orgUnits, _ := glib.GetListOfOrgUnits(clientService)
+
+	// save to file
+	if len(orgUnits) == 0 {
+		log.Println("⚠ No OrgUnits found.")
+	} else {
+		for _, ou := range orgUnits {
+			cfg.OrgUnits = append(cfg.OrgUnits, config.OrgUnitConfig{
+				Name:              ou.Name,
+				Description:       ou.Description,
+				ParentOrgUnitPath: ou.ParentOrgUnitPath,
+				BlockInheritance:  ou.BlockInheritance,
+				OrgUnitPath:       ou.OrgUnitPath,
+			})
+
 		}
 	}
 
