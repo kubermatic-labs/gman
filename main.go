@@ -29,8 +29,6 @@ func main() {
 		confirm               = false
 		validate              = false
 		exportMode            = false
-		createUsers           = false
-		deleteUsers           = false
 		clientSecretFile      = ""
 		impersonatedUserEmail = ""
 	)
@@ -38,38 +36,19 @@ func main() {
 	flag.StringVar(&configFile, "config", configFile, "path to the config.yaml")
 	flag.StringVar(&clientSecretFile, "private-key", clientSecretFile, "path to the Service Account secret file (.json) coontaining Keys used for authorization")
 	flag.StringVar(&impersonatedUserEmail, "impersonated-email", impersonatedUserEmail, "Admin email used to impersonate Service Account")
-	flag.BoolVar(&showVersion, "version", showVersion, "show the Gman version and exit")
+	flag.BoolVar(&showVersion, "version", showVersion, "show the Gman version and exit; does not need config file, API key and impersonated email")
 	flag.BoolVar(&confirm, "confirm", confirm, "must be set to actually perform any changes")
-	flag.BoolVar(&validate, "validate", validate, "validate the given configuration and then exit")
+	flag.BoolVar(&validate, "validate", validate, "validate the given configuration and then exit; does not need API key and impersonated email")
 	flag.BoolVar(&exportMode, "export", exportMode, "export the state and update the config file (-config flag)")
-	flag.BoolVar(&createUsers, "create-users", createUsers, "create repositories listed in the config file but not existing on quay.io yet")
-	flag.BoolVar(&deleteUsers, "delete-users", deleteUsers, "delete repositories on quay.io that are not listed in the config file")
 
 	flag.Parse()
-
-	if clientSecretFile == "" {
-		clientSecretFile = os.Getenv("GMAN_SERVICE_ACCOUNT_KEY")
-		if clientSecretFile == "" {
-			log.Print("⚠ No authorization .json file (-private-key) specified.\n\n")
-			flag.Usage()
-			os.Exit(1)
-		}
-	}
-
-	if impersonatedUserEmail == "" {
-		impersonatedUserEmail = os.Getenv("GMAN_IMPERSONATED_EMAIL")
-		if impersonatedUserEmail == "" {
-			log.Print("⚠ No impersonated user email (-impersonated-email) specified.\n\n")
-			flag.Usage()
-			os.Exit(1)
-		}
-	}
 
 	if showVersion {
 		fmt.Printf("Gman %s (built at %s)\n", version, date)
 		return
 	}
 
+	// config file must be present
 	if configFile == "" {
 		configFile = os.Getenv("GMAN_CONFIG_FILE")
 		if configFile == "" {
@@ -91,8 +70,27 @@ func main() {
 		} else {
 			log.Println("✓ Configuration is valid.")
 		}
+		// return if in validate mode
 		if validate {
 			return
+		}
+	}
+
+	if clientSecretFile == "" {
+		clientSecretFile = os.Getenv("GMAN_SERVICE_ACCOUNT_KEY")
+		if clientSecretFile == "" {
+			log.Print("⚠ No authorization .json file (-private-key) specified.\n\n")
+			flag.Usage()
+			os.Exit(1)
+		}
+	}
+
+	if impersonatedUserEmail == "" {
+		impersonatedUserEmail = os.Getenv("GMAN_IMPERSONATED_EMAIL")
+		if impersonatedUserEmail == "" {
+			log.Print("⚠ No impersonated user email (-impersonated-email) specified.\n\n")
+			flag.Usage()
+			os.Exit(1)
 		}
 	}
 
