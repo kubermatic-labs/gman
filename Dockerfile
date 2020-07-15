@@ -9,5 +9,5 @@ RUN go build -o gman main.go
 FROM alpine:3.12
 
 RUN apk --no-cache add ca-certificates
-COPY --from=builder /app/gman .
-ENTRYPOINT ["/gman"]
+COPY --from=builder /app/gman /usr/local/bin/
+ENTRYPOINT ["gman"]
