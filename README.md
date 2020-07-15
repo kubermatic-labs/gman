@@ -29,7 +29,7 @@
 
 ## Installation
 
-.....
+The official releases can be found [here](https://github.com/kubermatic-labs/gman/releases).
 
 ## Configuration & Authentication 
 
