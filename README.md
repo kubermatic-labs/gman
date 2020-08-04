@@ -40,11 +40,24 @@ The Directory API is intended for management of devices, groups, group members, 
 To be able to use it, please make sure that you have access to an admin account in the Admin Console and you have set up your API. 
 For more detailed information, see [the official Google documentation](https://developers.google.com/admin-sdk/directory/v1/guides/prerequisites).
 
+Moreover, to access the extended settings of the groups, the Groups Settings API must be enabled as well (see [the official documentation](https://developers.google.com/admin-sdk/groups-settings/prerequisites#prereqs-enableapis)).
+
+
 ### Service account 
 
 To authorize and to perform the operations on behalf of *Gman* a Service Account is required. 
+After creating one, it needs to be registered as an API client and have enabled this OAuth scopes: 
 
-Please, create one and generate a Key (save the *.json* config). 
+* https://www.googleapis.com/auth/admin.directory.user
+* https://www.googleapis.com/auth/admin.directory.orgunit
+* https://www.googleapis.com/auth/admin.directory.group
+* https://www.googleapis.com/auth/admin.directory.group.member
+* https://www.googleapis.com/auth/apps.groups.settings
+* https://www.googleapis.com/auth/admin.directory.resource.calendar
+  
+Those scopes can be added in Admin console under *Security -> API Controls -> Domain-wide Delegation*.
+
+Furthermore, please, generate a Key (save the *.json* config) for this Service Account. 
 For more detailed information, follow [the official instructions](https://developers.google.com/admin-sdk/directory/v1/guides/delegation#create_the_service_account_and_credentials).
 
 The Service Account private key must be provided to *Gman*. There are two ways to do so: 

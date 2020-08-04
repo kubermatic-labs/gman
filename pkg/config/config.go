@@ -19,18 +19,45 @@ type Config struct {
 }
 
 type UserConfig struct {
-	FirstName      string `yaml:"given_name"`
-	LastName       string `yaml:"family_name"`
-	PrimaryEmail   string `yaml:"primary_email"`
-	SecondaryEmail string `yaml:"secondary_email,omitempty"`
-	OrgUnitPath    string `yaml:"org_unit_path,omitempty"`
+	FirstName      string         `yaml:"given_name"`
+	LastName       string         `yaml:"family_name"`
+	PrimaryEmail   string         `yaml:"primary_email"`
+	SecondaryEmail string         `yaml:"secondary_email,omitempty"`
+	Aliases        []string       `yaml:"aliases,omitempty"`
+	Phones         []string       `yaml:"phones,omitempty"`
+	RecoveryPhone  string         `yaml:"recovery_phone,omitempty"`
+	RecoveryEmail  string         `yaml:"recovery_email,omitempty"`
+	OrgUnitPath    string         `yaml:"org_unit_path,omitempty"`
+	Employee       EmployeeConfig `yaml:"employee_info,omitempty"`
+	Location       LocationConfig `yaml:"location,omitempty"`
+	Address        string         `yaml:"addresses,omitempty"`
+}
+
+type LocationConfig struct {
+	Building     string `yaml:"building,omitempty"`
+	Floor        string `yaml:"floor,omitempty"`
+	FloorSection string `yaml:"floor_section,omitempty"`
+}
+
+type EmployeeConfig struct {
+	Department   string `yaml:"department,omitempty"`
+	JobTitle     string `yaml:"job_title,omitempty"`
+	Type         string `yaml:"type,omitempty"`
+	CostCenter   string `yaml:"cost_center,omitempty"`
+	ManagerEmail string `yaml:"manager_email,omitempty"`
 }
 
 type GroupConfig struct {
-	Name        string         `yaml:"name"`
-	Email       string         `yaml:"email"`
-	Description string         `yaml:"description,omitempty"`
-	Members     []MemberConfig `yaml:"members,omitempty"`
+	Name                 string         `yaml:"name"`
+	Email                string         `yaml:"email"`
+	Description          string         `yaml:"description,omitempty"`
+	WhoCanContactOwner   string         `yaml:"who_can_contact_owner,omitempty"`
+	WhoCanViewMembership string         `yaml:"who_can_view_members,omitempty"`
+	WhoCanApproveMembers string         `yaml:"who_can_approve_members,omitempty"`
+	WhoCanPostMessage    string         `yaml:"who_can_post,omitempty"`
+	WhoCanJoin           string         `yaml:"who_can_join,omitempty"`
+	AllowExternalMembers string         `yaml:"allow_external_members,omitempty"`
+	Members              []MemberConfig `yaml:"members,omitempty"`
 }
 
 type MemberConfig struct {
@@ -43,7 +70,7 @@ type OrgUnitConfig struct {
 	Description       string `yaml:"description,omitempty"`
 	ParentOrgUnitPath string `yaml:"parent_org_unit_path,omitempty"`
 	OrgUnitPath       string `yaml:"org_unit_path,omitempty"`
-	BlockInheritance  bool   `yaml:"block_nheritance,omitempty"`
+	BlockInheritance  bool   `yaml:"block_inheritance,omitempty"`
 }
 
 func LoadFromFile(filename string) (*Config, error) {
@@ -107,7 +134,6 @@ func (c *Config) Validate() error {
 		userEmails = append(userEmails, user.PrimaryEmail)
 	}
 
-	// TODO: validate orgunits & groups
 	// validate groups
 	groupEmails := []string{}
 	for _, group := range c.Groups {

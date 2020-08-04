@@ -4,13 +4,15 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"reflect"
 
 	"github.com/kubermatic-labs/gman/pkg/config"
 	"github.com/kubermatic-labs/gman/pkg/glib"
 	admin "google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/groupssettings/v1"
 )
 
-func SyncConfiguration(ctx context.Context, cfg *config.Config, clientService *admin.Service, confirm bool) error {
+func SyncConfiguration(ctx context.Context, cfg *config.Config, clientService *admin.Service, groupService *groupssettings.Service, confirm bool) error {
 
 	if err := SyncOrgUnits(ctx, clientService, cfg, confirm); err != nil {
 		return fmt.Errorf("failed to sync users: %v", err)
@@ -52,11 +54,9 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 				if configUser.PrimaryEmail == currentUser.PrimaryEmail {
 					found = true
 					// user is existing & should exist, so check if needs an update
-					_, workEmail := glib.GetUserEmails(currentUser)
-					if configUser.LastName != currentUser.Name.FamilyName ||
-						configUser.FirstName != currentUser.Name.GivenName ||
-						configUser.SecondaryEmail != workEmail ||
-						configUser.OrgUnitPath != currentUser.OrgUnitPath {
+					currentUserConfig := glib.CreateConfigUserFromGSuite(currentUser)
+					if !reflect.DeepEqual(currentUserConfig, configUser) {
+						fmt.Println(currentUser.Locations)
 						usersToUpdate = append(usersToUpdate, configUser)
 					}
 					break

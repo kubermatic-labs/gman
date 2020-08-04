@@ -8,9 +8,10 @@ import (
 	"github.com/kubermatic-labs/gman/pkg/config"
 	"github.com/kubermatic-labs/gman/pkg/glib"
 	admin "google.golang.org/api/admin/directory/v1"
+	groupssettings "google.golang.org/api/groupssettings/v1"
 )
 
-func ExportConfiguration(ctx context.Context, organization string, clientService *admin.Service) (*config.Config, error) {
+func ExportConfiguration(ctx context.Context, organization string, clientService *admin.Service, groupService *groupssettings.Service) (*config.Config, error) {
 	cfg := &config.Config{
 		Organization: organization,
 	}
@@ -23,7 +24,7 @@ func ExportConfiguration(ctx context.Context, organization string, clientService
 		return cfg, fmt.Errorf("failed to export users: %v", err)
 	}
 
-	if err := exportGroups(ctx, clientService, cfg); err != nil {
+	if err := exportGroups(ctx, clientService, groupService, cfg); err != nil {
 		return cfg, fmt.Errorf("failed to export groups: %v", err)
 	}
 
@@ -41,22 +42,16 @@ func exportUsers(ctx context.Context, clientService *admin.Service, cfg *config.
 	} else {
 		for _, u := range users {
 			// get emails
-			primaryEmail, secondaryEmail := glib.GetUserEmails(u)
-
-			cfg.Users = append(cfg.Users, config.UserConfig{
-				FirstName:      u.Name.GivenName,
-				LastName:       u.Name.FamilyName,
-				PrimaryEmail:   primaryEmail,
-				SecondaryEmail: secondaryEmail,
-				OrgUnitPath:    u.OrgUnitPath,
-			})
+			//primaryEmail, secondaryEmail := glib.GetUserEmails(u)
+			usr := glib.CreateConfigUserFromGSuite(u)
+			cfg.Users = append(cfg.Users, usr)
 		}
 	}
 
 	return nil
 }
 
-func exportGroups(ctx context.Context, clientService *admin.Service, cfg *config.Config) error {
+func exportGroups(ctx context.Context, clientService *admin.Service, groupService *groupssettings.Service, cfg *config.Config) error {
 	log.Println("⇄ Exporting groups from GSuite...")
 	// get the groups array
 	groups, _ := glib.GetListOfGroups(clientService)
@@ -68,11 +63,18 @@ func exportGroups(ctx context.Context, clientService *admin.Service, cfg *config
 	} else {
 		for _, g := range groups {
 			members, _ = glib.GetListOfMembers(clientService, g)
+			gSettings, _ := glib.GetSettingOfGroup(groupService, g.Email)
 			thisGroup := config.GroupConfig{
-				Name:        g.Name,
-				Email:       g.Email,
-				Description: g.Description,
-				Members:     []config.MemberConfig{},
+				Name:                 g.Name,
+				Email:                g.Email,
+				Description:          g.Description,
+				WhoCanContactOwner:   gSettings.WhoCanContactOwner,
+				WhoCanViewMembership: gSettings.WhoCanViewMembership,
+				WhoCanApproveMembers: gSettings.WhoCanApproveMembers,
+				WhoCanPostMessage:    gSettings.WhoCanPostMessage,
+				WhoCanJoin:           gSettings.WhoCanJoin,
+				AllowExternalMembers: gSettings.AllowExternalMembers,
+				Members:              []config.MemberConfig{},
 			}
 			for _, m := range members {
 				thisGroup.Members = append(thisGroup.Members, config.MemberConfig{

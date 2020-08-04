@@ -96,13 +96,18 @@ func main() {
 
 	srv, err := glib.NewDirectoryService(clientSecretFile, impersonatedUserEmail)
 	if err != nil {
-		log.Fatalf("⚠ Failed to create GSuite API client (CreateDirectoryService): %v", err)
+		log.Fatalf("⚠ Failed to create GSuite Directory API client: %v", err)
+	}
+
+	grSrv, err := glib.NewGroupsService(clientSecretFile, impersonatedUserEmail)
+	if err != nil {
+		log.Fatalf("⚠ Failed to create GSuite Groupssettings API client: %v", err)
 	}
 
 	if exportMode {
 		log.Printf("► Exporting organization %s…", cfg.Organization)
 
-		newConfig, err := export.ExportConfiguration(ctx, cfg.Organization, srv)
+		newConfig, err := export.ExportConfiguration(ctx, cfg.Organization, srv, grSrv)
 		if err != nil {
 			log.Fatalf("⚠ Failed to export: %v.", err)
 		}
@@ -117,7 +122,7 @@ func main() {
 
 	log.Printf("► Updating organization %s…", cfg.Organization)
 
-	err = sync.SyncConfiguration(ctx, cfg, srv, confirm)
+	err = sync.SyncConfiguration(ctx, cfg, srv, grSrv, confirm)
 	if err != nil {
 		log.Fatalf("⚠ Failed to sync state: %v.", err)
 	}
