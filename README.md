@@ -78,7 +78,8 @@ The impersonated email must be specified in *Gman*. There are two ways to do so:
 
 ### Config YAML 
 
-All configuration of the users happens in a YAML file. See the annotated [config.example.yaml](/config.example.yaml) for more information.
+All configuration of the users happens in a YAML file. See the annotated [config.example.yaml](/config.example.yaml) for more information, available parameters and example usage.
+
 This file must be created beforehand with the minimal configuration, i.e. organization name specified. 
 In order to get the initial config of the users that are already in place in your Organizaiton, run *Gman* with `-export` flag specified, so the depicted on your side YAML can be populated. 
 
@@ -86,6 +87,7 @@ There are two ways to specify the path to the configuration YAML file:
 
 - set up environmental variable: `GMAN_CONFIG_FILE=<VALUE>` 
 - start the application with specified flag `-config <value>`
+
 
 ## Usage
 
@@ -262,7 +264,7 @@ $ gman -config myconfig.yaml -confirm
 Due to the fact that it is impossible to automate the send out of the login information email via Google API there are two possibilities to enable the first log in of the new users: 
 
 - manually send the login information email from admin console via _RESET PASSWORD_ option (follow instructions on [this official Google documentation](https://support.google.com/a/answer/33319?hl=en))
-- set up a password recovery for users (follow [this official Google documentation](https://support.google.com/a/answer/33382?p=accnt_recovery_users&visit_id=637279854011127407-389630162&rd=1&hl=en) to perform it). *Gman* sets te secondary email address as a recovery email; hence, in your onboarding message you should inform the users about their new GSuite email address and that on the first login, the _Forgot password?_ option should be chosen, so the verification code can be sent to to the private secondary email. 
+- set up a password recovery for users (follow [this official Google documentation](https://support.google.com/a/answer/33382?p=accnt_recovery_users&visit_id=637279854011127407-389630162&rd=1&hl=en) to perform it). This requires the `recovery_email` field to be set for the users. Hence, in the onboarding message the new users ought to be informed about their new GSuite email address and that on the first login, the _Forgot password?_ option should be chosen, so the verification code can be sent to to the private recovery email. 
 
 ## Changelog
 

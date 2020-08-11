@@ -14,14 +14,40 @@ org_units:
 # here will be deleted during synchronization. 
 users:
   - #user 1
-    given_name: Horst # first name
-    family_name: Example # last name
-    # the primary email is a GSuite address
+    given_name: Horst # first name; this field is required
+    family_name: Example # last name; this field is required
+    # the primary email is a GSuite address; must end with your organization's domain name 
+    # primary_email field is always required
     primary_email: horst@myorganization.com 
-    # secondary email is used to send out an invitation
+    # secondary, private email
     secondary_email: horst@privateaddress.com
     # org unit path indicates in which OU the user should be created
     org_unit_path: / # single slash indicates parent org
+    # list of the user's alias email addresses  
+    aliases:
+      - horst.example@myorganization.com 
+    # list of the user's phone numbers
+    phones:
+      - "1234567890"
+    # recovery email is used to send out an invitation 
+    recovery_email: horst@privateaddress.com # commonly the same as the secondary email
+    # recovery phone of the user; the phone number must be in the E.164 format, starting with the plus sign (+)
+    recovery_phone: "+16506661212"
+    # additional informaton about employee
+    employee_info:
+        employee_ID: 123
+        department: development
+        job_title: working student
+        type: part-time
+        cost_center: cc1
+        manager_email: gregor@myorganization.com 
+    # additional information about employee location
+    location:
+        building: BuildingA
+        floor: 2
+        floor_section: B12
+    # private home address
+    addresses: Whatever Street 1000, Sometown
 
   - given_name: Gregor
     family_name: Samsa
@@ -34,7 +60,46 @@ users:
 # Members not defined in the group will be removed from it during synchronization.
 groups:
   - name: Test Group
-    email: testgroup@myorganization.com
+    # email of the group; must end with your organization's domain name
+    email: testgroup@myorganization.com 
+    # Permission to contact owner of the group via web UI. Possible values are:
+    # - ALL_IN_DOMAIN_CAN_CONTACT
+    # - ALL_MANAGERS_CAN_CONTACT
+    # - ALL_MEMBERS_CAN_CONTACT
+    # - ANYONE_CAN_CONTACT
+    who_can_contact_owner: ALL_MEMBERS_CAN_CONTACT
+    # Permissions to view group messages. Possible values are:
+    # - ANYONE_CAN_VIEW: Any Internet user 
+    # - ALL_IN_DOMAIN_CAN_VIEW: Anyone in your account
+    # - ALL_MEMBERS_CAN_VIEW: All group members 
+    # - ALL_MANAGERS_CAN_VIEW: Any group manager 
+    who_can_view_members: ALL_MEMBERS_CAN_VIEW
+    # Specifies who can approve members who ask to join groups. Possible values are:
+    # - ALL_MEMBERS_CAN_APPROVE
+    # - ALL_MANAGERS_CAN_APPROVE
+    # - ALL_OWNERS_CAN_APPROVE
+    # - NONE_CAN_APPROVE
+    who_can_approve_members: ALL_MANAGERS_CAN_APPROVE
+    # Permissions to post messages. Possible values are:
+    # - NONE_CAN_POST: The group is disabled and archived; 'is_archived' must be set to true, otherwise will result in an error
+    # - ALL_MANAGERS_CAN_POST: Managers, including group owners
+    # - ALL_MEMBERS_CAN_POST: Any group member
+    # - ALL_OWNERS_CAN_POST: Only group owners 
+    # - ALL_IN_DOMAIN_CAN_POST: Anyone in the account 
+    # - ANYONE_CAN_POST: Any Internet user who can access your Google Groups service 
+    who_can_post: ALL_MEMBERS_CAN_POST
+    # Permission to join group. Possible values are:
+    # - ANYONE_CAN_JOIN: Anyone in the account domain 
+    # - ALL_IN_DOMAIN_CAN_JOIN: Any Internet user who can access your Google Groups service 
+    # - INVITED_CAN_JOIN: Candidates for membership can be invited to join
+    # - CAN_REQUEST_TO_JOIN: Non members can request an invitation to join
+    who_can_join: CAN_REQUEST_TO_JOIN
+    # Identifies whether members external to your organization can join the group. 
+    # Possible values are: "true" or "false"
+    allow_external_members: "false"
+    # Allows the Group contents to be archived. Possible values are: "true" or "false"
+    is_archived: "false"
+    # list of members 
     members:
       - email: horst@myorganization.com
         role: MEMBER # role can be MEMBER, OWNER or MANAGER

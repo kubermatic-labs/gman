@@ -65,8 +65,12 @@ func main() {
 
 	// validate config unless in export mode, where an incomplete configuration is allowed and even expected
 	if !exportMode {
-		if err := cfg.Validate(); err != nil {
-			log.Fatalf("⚠ Configuration is invalid: %v", err)
+		if errs := cfg.Validate(); errs != nil {
+			log.Println("Configuration is invalid:")
+			for _, e := range errs {
+				log.Printf(" ⚠  %v\n", e)
+			}
+			os.Exit(1)
 		} else {
 			log.Println("✓ Configuration is valid.")
 		}
@@ -109,7 +113,7 @@ func main() {
 
 		newConfig, err := export.ExportConfiguration(ctx, cfg.Organization, srv, grSrv)
 		if err != nil {
-			log.Fatalf("⚠ Failed to export: %v.", err)
+			log.Fatalf("⚠ Failed to export %v.", err)
 		}
 
 		if err := config.SaveToFile(newConfig, configFile); err != nil {

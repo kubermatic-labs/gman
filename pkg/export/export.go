@@ -17,15 +17,15 @@ func ExportConfiguration(ctx context.Context, organization string, clientService
 	}
 
 	if err := exportOrgUnits(ctx, clientService, cfg); err != nil {
-		return cfg, fmt.Errorf("failed to export org units: %v", err)
+		return cfg, fmt.Errorf("org units: %v", err)
 	}
 
 	if err := exportUsers(ctx, clientService, cfg); err != nil {
-		return cfg, fmt.Errorf("failed to export users: %v", err)
+		return cfg, fmt.Errorf("users: %v", err)
 	}
 
 	if err := exportGroups(ctx, clientService, groupService, cfg); err != nil {
-		return cfg, fmt.Errorf("failed to export groups: %v", err)
+		return cfg, fmt.Errorf("groups: %v", err)
 	}
 
 	return cfg, nil
@@ -34,7 +34,10 @@ func ExportConfiguration(ctx context.Context, organization string, clientService
 func exportUsers(ctx context.Context, clientService *admin.Service, cfg *config.Config) error {
 	log.Println("⇄ Exporting users from GSuite...")
 	// get the users array
-	users, _ := glib.GetListOfUsers(*clientService)
+	users, err := glib.GetListOfUsers(*clientService)
+	if err != nil {
+		return err
+	}
 
 	// save to file
 	if len(users) == 0 {
@@ -54,7 +57,10 @@ func exportUsers(ctx context.Context, clientService *admin.Service, cfg *config.
 func exportGroups(ctx context.Context, clientService *admin.Service, groupService *groupssettings.Service, cfg *config.Config) error {
 	log.Println("⇄ Exporting groups from GSuite...")
 	// get the groups array
-	groups, _ := glib.GetListOfGroups(clientService)
+	groups, err := glib.GetListOfGroups(clientService)
+	if err != nil {
+		return err
+	}
 	var members []*admin.Member
 
 	// save to file
@@ -62,27 +68,15 @@ func exportGroups(ctx context.Context, clientService *admin.Service, groupServic
 		log.Println("⚠ No groups found.")
 	} else {
 		for _, g := range groups {
-			members, _ = glib.GetListOfMembers(clientService, g)
-			gSettings, _ := glib.GetSettingOfGroup(groupService, g.Email)
-			thisGroup := config.GroupConfig{
-				Name:                 g.Name,
-				Email:                g.Email,
-				Description:          g.Description,
-				WhoCanContactOwner:   gSettings.WhoCanContactOwner,
-				WhoCanViewMembership: gSettings.WhoCanViewMembership,
-				WhoCanApproveMembers: gSettings.WhoCanApproveMembers,
-				WhoCanPostMessage:    gSettings.WhoCanPostMessage,
-				WhoCanJoin:           gSettings.WhoCanJoin,
-				AllowExternalMembers: gSettings.AllowExternalMembers,
-				Members:              []config.MemberConfig{},
+			members, err = glib.GetListOfMembers(clientService, g)
+			if err != nil {
+				return err
 			}
-			for _, m := range members {
-				thisGroup.Members = append(thisGroup.Members, config.MemberConfig{
-					Email: m.Email,
-					Role:  m.Role,
-				})
-
+			gSettings, err := glib.GetSettingOfGroup(groupService, g.Email)
+			if err != nil {
+				return err
 			}
+			thisGroup := glib.CreateConfigGroupFromGSuite(g, members, gSettings)
 			cfg.Groups = append(cfg.Groups, thisGroup)
 		}
 	}
@@ -93,7 +87,10 @@ func exportGroups(ctx context.Context, clientService *admin.Service, groupServic
 func exportOrgUnits(ctx context.Context, clientService *admin.Service, cfg *config.Config) error {
 	log.Println("⇄ Exporting organizational units from GSuite...")
 	// get the users array
-	orgUnits, _ := glib.GetListOfOrgUnits(clientService)
+	orgUnits, err := glib.GetListOfOrgUnits(clientService)
+	if err != nil {
+		return err
+	}
 
 	// save to file
 	if len(orgUnits) == 0 {
