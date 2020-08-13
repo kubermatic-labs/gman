@@ -76,7 +76,11 @@ func exportGroups(ctx context.Context, clientService *admin.Service, groupServic
 			if err != nil {
 				return err
 			}
-			thisGroup := glib.CreateConfigGroupFromGSuite(g, members, gSettings)
+			thisGroup, err := glib.CreateConfigGroupFromGSuite(g, members, gSettings)
+			if err != nil {
+				return err
+			}
+
 			cfg.Groups = append(cfg.Groups, thisGroup)
 		}
 	}

@@ -82,63 +82,63 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 
 	if confirm {
 		if usersToCreate != nil {
-			log.Println("✎ Creating...")
+			log.Println("Creating...")
 			for _, user := range usersToCreate {
 				err := glib.CreateUser(*clientService, &user)
 				if err != nil {
 					return fmt.Errorf("⚠ Failed to create user %s: %v.", user.PrimaryEmail, err)
 				} else {
-					log.Printf("\t+ user: %s\n", user.PrimaryEmail)
+					log.Printf(" ✎  user: %s\n", user.PrimaryEmail)
 				}
 			}
 		}
 		if usersToDelete != nil {
-			log.Println("✁ Deleting...")
+			log.Println("Deleting...")
 			for _, user := range usersToDelete {
 				err := glib.DeleteUser(*clientService, user)
 				if err != nil {
 					return fmt.Errorf("⚠ Failed to delete user %s: %v.", user.PrimaryEmail, err)
 				} else {
-					log.Printf("\t- user: %s\n", user.PrimaryEmail)
+					log.Printf(" ✁  user: %s\n", user.PrimaryEmail)
 				}
 			}
 		}
 		if usersToUpdate != nil {
-			log.Println("✎ Updating...")
+			log.Println("Updating...")
 			for _, user := range usersToUpdate {
 				err := glib.UpdateUser(*clientService, &user)
 				if err != nil {
 					return fmt.Errorf("⚠ Failed to update user %s: %v.", user.PrimaryEmail, err)
 				} else {
-					log.Printf("\t~ user: %s\n", user.PrimaryEmail)
+					log.Printf(" ✎  user: %s\n", user.PrimaryEmail)
 				}
 			}
 		}
 	} else {
 		if usersToDelete == nil {
-			log.Println("✁ There is no users to delete.")
+			log.Println("There is no users to delete.")
 		} else {
-			log.Println("✁ Found users to delete: ")
+			log.Println("Found users to delete: ")
 			for _, u := range usersToDelete {
-				log.Printf("\t- %s %s\n", u.Name.GivenName, u.Name.FamilyName)
+				log.Printf(" ✁  %s\n", u.PrimaryEmail)
 			}
 		}
 
 		if usersToCreate == nil {
-			log.Println("✎ There is no users to create.")
+			log.Println("There is no users to create.")
 		} else {
-			log.Println("✎ Found users to create: ")
+			log.Println("Found users to create: ")
 			for _, u := range usersToCreate {
-				log.Printf("\t+ %s %s\n", u.FirstName, u.LastName)
+				log.Printf(" ✎  %s\n", u.PrimaryEmail)
 			}
 		}
 
 		if usersToUpdate == nil {
-			log.Println("✎ There is no users to update.")
+			log.Println("There is no users to update.")
 		} else {
-			log.Println("✎ Found users to update: ")
+			log.Println("Found users to update: ")
 			for _, u := range usersToUpdate {
-				log.Printf("\t~ %s %s\n", u.FirstName, u.LastName)
+				log.Printf(" ✎  %s\n", u.PrimaryEmail)
 			}
 		}
 	}
@@ -193,7 +193,10 @@ func SyncGroups(ctx context.Context, clientService *admin.Service, groupService 
 					if err != nil {
 						return err
 					}
-					currentGroupConfig := glib.CreateConfigGroupFromGSuite(currGroup, currentMembers, currentSettings)
+					currentGroupConfig, err := glib.CreateConfigGroupFromGSuite(currGroup, currentMembers, currentSettings)
+					if err != nil {
+						return err
+					}
 					if !reflect.DeepEqual(currentGroupConfig, cfgGroup) {
 						upGroup.groupToUpdate = cfgGroup
 						groupsToUpdate = append(groupsToUpdate, upGroup)
@@ -224,35 +227,35 @@ func SyncGroups(ctx context.Context, clientService *admin.Service, groupService 
 
 	if confirm {
 		if groupsToCreate != nil {
-			log.Println("✎ Creating...")
+			log.Println("Creating...")
 			for _, gr := range groupsToCreate {
 				err := glib.CreateGroup(*clientService, *groupService, &gr)
 				if err != nil {
 					return fmt.Errorf("⚠ Failed to create a group %s: %v.", gr.Name, err)
 				} else {
-					log.Printf("\t+ group: %s\n", gr.Name)
+					log.Printf(" ✎  group: %s\n", gr.Name)
 				}
 			}
 		}
 		if groupsToDelete != nil {
-			log.Println("✁ Deleting...")
+			log.Println("Deleting...")
 			for _, gr := range groupsToDelete {
 				err := glib.DeleteGroup(*clientService, gr)
 				if err != nil {
 					return fmt.Errorf("⚠ Failed to delete a group %s: %v.", gr.Name, err)
 				} else {
-					log.Printf("\t- group: %s\n", gr.Name)
+					log.Printf(" ✁  group: %s\n", gr.Name)
 				}
 			}
 		}
 		if groupsToUpdate != nil {
-			log.Println("✎ Updating...")
+			log.Println("Updating...")
 			for _, gr := range groupsToUpdate {
 				err := glib.UpdateGroup(*clientService, *groupService, &gr.groupToUpdate)
 				if err != nil {
 					return fmt.Errorf("⚠ Failed to update a group: %v.", err)
 				} else {
-					log.Printf("\t~ group: %s\n", gr.groupToUpdate.Name)
+					log.Printf(" ✎  group: %s\n", gr.groupToUpdate.Name)
 				}
 
 				for _, mem := range gr.membersToAdd {
@@ -260,7 +263,7 @@ func SyncGroups(ctx context.Context, clientService *admin.Service, groupService 
 					if err != nil {
 						return fmt.Errorf("⚠ Failed to add a member to a group: %v.", err)
 					} else {
-						log.Printf("\t\t+ %s \n", mem.Email)
+						log.Printf(" ✎  adding member: %s \n", mem.Email)
 					}
 				}
 				for _, mem := range gr.membersToRemove {
@@ -268,7 +271,7 @@ func SyncGroups(ctx context.Context, clientService *admin.Service, groupService 
 					if err != nil {
 						return fmt.Errorf("⚠ Failed to add a member to a group: %v.", err)
 					} else {
-						log.Printf("\t\t- %s \n", mem.Email)
+						log.Printf(" ✁  removing member: %s \n", mem.Email)
 					}
 				}
 				for _, mem := range gr.membersToUpdate {
@@ -276,41 +279,44 @@ func SyncGroups(ctx context.Context, clientService *admin.Service, groupService 
 					if err != nil {
 						return fmt.Errorf("⚠ Failed to update membership in a group: %v.", err)
 					} else {
-						log.Printf("\t\t~ %s \n", mem.Email)
+						log.Printf(" ✎  updating membership: %s \n", mem.Email)
 					}
 				}
 			}
 		}
 	} else {
 		if groupsToDelete == nil {
-			log.Println("✁ There is no groups to delete.")
+			log.Println("There is no groups to delete.")
 		} else {
-			log.Println("✁ Found groups to delete: ")
+			log.Println("Found groups to delete: ")
 			for _, g := range groupsToDelete {
-				log.Printf("\t- %s \n", g.Name)
+				log.Printf(" ✁  %s \n", g.Name)
 			}
 		}
 
 		if groupsToCreate == nil {
-			log.Println("✎ There is no groups to create.")
+			log.Println("There is no groups to create.")
 		} else {
-			log.Println("✎ Found groups to create: ")
+			log.Println("Found groups to create: ")
 			for _, g := range groupsToCreate {
-				log.Printf("\t+ %s\n", g.Name)
+				log.Printf(" ✎  %s\n", g.Name)
 			}
 		}
 
 		if groupsToUpdate == nil {
-			log.Println("✎ There is no groups to update.")
+			log.Println("There is no groups to update.")
 		} else {
-			log.Println("✎ Found groups to update: ")
+			log.Println("Found groups to update: ")
 			for _, g := range groupsToUpdate {
-				log.Printf("\t~ %s \n", g.groupToUpdate.Name)
+				log.Printf(" ✎  %s \n", g.groupToUpdate.Name)
 				for _, mem := range g.membersToAdd {
-					log.Printf("\t\t+ %s \n", mem.Email)
+					log.Printf(" ✎  member to add: %s \n", mem.Email)
 				}
 				for _, mem := range g.membersToRemove {
-					log.Printf("\t\t- %s \n", mem.Email)
+					log.Printf(" ✁  member to remove: %s \n", mem.Email)
+				}
+				for _, mem := range g.membersToUpdate {
+					log.Printf(" ✎  member to update: %s \n", mem.Email)
 				}
 			}
 		}
@@ -415,60 +421,60 @@ func SyncOrgUnits(ctx context.Context, clientService *admin.Service, cfg *config
 
 	if confirm {
 		if ouToCreate != nil {
-			log.Println("✎ Creating...")
+			log.Println("Creating...")
 			for _, ou := range ouToCreate {
 				err := glib.CreateOrgUnit(*clientService, &ou)
 				if err != nil {
 					return err
 				}
-				log.Printf("\t+ org unit: %s\n", ou.Name)
+				log.Printf(" ✎  org unit: %s\n", ou.Name)
 			}
 		}
 		if ouToDelete != nil {
-			log.Println("✁ Deleting...")
+			log.Println("Deleting...")
 			for _, ou := range ouToDelete {
 				err := glib.DeleteOrgUnit(*clientService, ou)
 				if err != nil {
 					return err
 				}
-				log.Printf("\t- org unit: %s\n", ou.Name)
+				log.Printf(" ✁  org unit: %s\n", ou.Name)
 			}
 		}
 		if ouToUpdate != nil {
-			log.Println("✎ Updating...")
+			log.Println("Updating...")
 			for _, ou := range ouToUpdate {
 				err := glib.UpdateOrgUnit(*clientService, &ou)
 				if err != nil {
 					return err
 				}
-				log.Printf("\t~ org unit: %s \n", ou.Name)
+				log.Printf(" ✎  org unit: %s \n", ou.Name)
 			}
 		}
 	} else {
 		if ouToDelete == nil {
-			log.Println("✁ There is no org units to delete.")
+			log.Println("There is no org units to delete.")
 		} else {
-			log.Println("✁ Found org units to delete: ")
+			log.Println("Found org units to delete: ")
 			for _, ou := range ouToDelete {
-				log.Printf("\t- %s \n", ou.Name)
+				log.Printf(" ✁  %s \n", ou.Name)
 			}
 		}
 
 		if ouToCreate == nil {
-			log.Println("✎ There is no org units to create.")
+			log.Println("There is no org units to create.")
 		} else {
-			log.Println("✎ Found org units to create: ")
+			log.Println("Found org units to create: ")
 			for _, ou := range ouToCreate {
-				log.Printf("\t+ %s \n", ou.Name)
+				log.Printf(" ✎  %s \n", ou.Name)
 			}
 		}
 
 		if ouToUpdate == nil {
-			log.Println("✎ There is no org units to update.")
+			log.Println("There is no org units to update.")
 		} else {
-			log.Println("✎ Found org units to update: ")
+			log.Println("Found org units to update: ")
 			for _, ou := range ouToUpdate {
-				log.Printf("\t~ %s\n", ou.Name)
+				log.Printf(" ✎  %s\n", ou.Name)
 			}
 		}
 	}

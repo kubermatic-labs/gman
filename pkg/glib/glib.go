@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"strconv"
 
 	"github.com/kubermatic-labs/gman/pkg/config"
 	password "github.com/sethvargo/go-password/password"
@@ -21,12 +22,12 @@ func NewDirectoryService(clientSecretFile string, impersonatedUserEmail string) 
 
 	jsonCredentials, err := ioutil.ReadFile(clientSecretFile)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to read json credentials (clientSecretFile): %v", err)
+		return nil, fmt.Errorf("unable to read json credentials (clientSecretFile): %v", err)
 	}
 
 	config, err := google.JWTConfigFromJSON(jsonCredentials, admin.AdminDirectoryUserScope, admin.AdminDirectoryGroupScope, admin.AdminDirectoryGroupMemberScope, admin.AdminDirectoryOrgunitScope, admin.AdminDirectoryResourceCalendarScope)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to process credentials: %v", err)
+		return nil, fmt.Errorf("unable to process credentials: %v", err)
 	}
 	config.Subject = impersonatedUserEmail
 
@@ -34,7 +35,7 @@ func NewDirectoryService(clientSecretFile string, impersonatedUserEmail string) 
 
 	srv, err := admin.NewService(ctx, option.WithTokenSource(ts))
 	if err != nil {
-		return nil, fmt.Errorf("Unable to create a new Admin Service: %v", err)
+		return nil, fmt.Errorf("unable to create a new Admin Service: %v", err)
 	}
 	return srv, nil
 }
@@ -46,12 +47,12 @@ func NewGroupsService(clientSecretFile string, impersonatedUserEmail string) (*g
 
 	jsonCredentials, err := ioutil.ReadFile(clientSecretFile)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to read json credentials (clientSecretFile): %v", err)
+		return nil, fmt.Errorf("unable to read json credentials (clientSecretFile): %v", err)
 	}
 
 	config, err := google.JWTConfigFromJSON(jsonCredentials, groupssettings.AppsGroupsSettingsScope)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to process credentials: %v", err)
+		return nil, fmt.Errorf("unable to process credentials: %v", err)
 	}
 	config.Subject = impersonatedUserEmail
 
@@ -59,7 +60,7 @@ func NewGroupsService(clientSecretFile string, impersonatedUserEmail string) (*g
 
 	srv, err := groupssettings.NewService(ctx, option.WithTokenSource(ts))
 	if err != nil {
-		return nil, fmt.Errorf("Unable to create a new Groupssettings Service: %v", err)
+		return nil, fmt.Errorf("unable to create a new Groupssettings Service: %v", err)
 	}
 	return srv, nil
 }
@@ -72,7 +73,7 @@ func NewGroupsService(clientSecretFile string, impersonatedUserEmail string) (*g
 func GetListOfUsers(srv admin.Service) ([]*admin.User, error) {
 	request, err := srv.Users.List().Customer("my_customer").OrderBy("email").Do()
 	if err != nil {
-		return nil, fmt.Errorf("Unable to retrieve list of users in domain: %v", err)
+		return nil, fmt.Errorf("unable to retrieve list of users in domain: %v", err)
 	}
 	return request.Users, nil
 }
@@ -97,7 +98,7 @@ func CreateUser(srv admin.Service, user *config.UserConfig) error {
 	// generate a rand password
 	pass, err := password.Generate(20, 5, 5, false, false)
 	if err != nil {
-		return fmt.Errorf("Unable to generate password: %v", err)
+		return fmt.Errorf("unable to generate password: %v", err)
 	}
 	newUser := createGSuiteUserFromConfig(srv, user)
 	newUser.Password = pass
@@ -105,7 +106,7 @@ func CreateUser(srv admin.Service, user *config.UserConfig) error {
 
 	_, err = srv.Users.Insert(newUser).Do()
 	if err != nil {
-		return fmt.Errorf("Unable to insert a user: %v", err)
+		return fmt.Errorf("unable to insert a user: %v", err)
 	}
 
 	HandleUserAliases(srv, newUser, user.Aliases)
@@ -117,7 +118,7 @@ func CreateUser(srv admin.Service, user *config.UserConfig) error {
 func DeleteUser(srv admin.Service, user *admin.User) error {
 	err := srv.Users.Delete(user.PrimaryEmail).Do()
 	if err != nil {
-		return fmt.Errorf("Unable to delete a user %s: %v", user.PrimaryEmail, err)
+		return fmt.Errorf("unable to delete a user %s: %v", user.PrimaryEmail, err)
 	}
 	return nil
 }
@@ -127,7 +128,7 @@ func UpdateUser(srv admin.Service, user *config.UserConfig) error {
 	updatedUser := createGSuiteUserFromConfig(srv, user)
 	_, err := srv.Users.Update(user.PrimaryEmail, updatedUser).Do()
 	if err != nil {
-		return fmt.Errorf("Unable to update a user %s: %v", user.PrimaryEmail, err)
+		return fmt.Errorf("unable to update a user %s: %v", user.PrimaryEmail, err)
 	}
 
 	HandleUserAliases(srv, updatedUser, user.Aliases)
@@ -138,14 +139,14 @@ func UpdateUser(srv admin.Service, user *config.UserConfig) error {
 func HandleUserAliases(srv admin.Service, googleUser *admin.User, configAliases []string) error {
 	request, err := srv.Users.Aliases.List(googleUser.PrimaryEmail).Do()
 	if err != nil {
-		return fmt.Errorf("Unable to list user aliases in GSuite: %v", err)
+		return fmt.Errorf("unable to list user aliases in GSuite: %v", err)
 	}
 
 	if len(configAliases) == 0 {
 		for _, alias := range request.Aliases {
 			err = srv.Users.Aliases.Delete(googleUser.PrimaryEmail, fmt.Sprint(alias.(map[string]interface{})["alias"])).Do()
 			if err != nil {
-				return fmt.Errorf("Unable to delete user alias: %v", err)
+				return fmt.Errorf("unable to delete user alias: %v", err)
 			}
 		}
 	} else {
@@ -162,7 +163,7 @@ func HandleUserAliases(srv admin.Service, googleUser *admin.User, configAliases 
 				// delete
 				err = srv.Users.Aliases.Delete(googleUser.PrimaryEmail, fmt.Sprint(alias.(map[string]interface{})["alias"])).Do()
 				if err != nil {
-					return fmt.Errorf("Unable to delete user alias: %v", err)
+					return fmt.Errorf("unable to delete user alias: %v", err)
 				}
 			}
 
@@ -185,7 +186,7 @@ func HandleUserAliases(srv admin.Service, googleUser *admin.User, configAliases 
 			}
 			_, err = srv.Users.Aliases.Insert(googleUser.PrimaryEmail, newAlias).Do()
 			if err != nil {
-				return fmt.Errorf("Unable to add user alias: %v", err)
+				return fmt.Errorf("unable to add user alias: %v", err)
 			}
 		}
 	}
@@ -367,7 +368,7 @@ func CreateConfigUserFromGSuite(googleUser *admin.User) config.UserConfig {
 func GetListOfGroups(srv *admin.Service) ([]*admin.Group, error) {
 	request, err := srv.Groups.List().Customer("my_customer").OrderBy("email").Do()
 	if err != nil {
-		return nil, fmt.Errorf("Unable to retrieve a list of groups in domain: %v", err)
+		return nil, fmt.Errorf("unable to retrieve a list of groups in domain: %v", err)
 	}
 	return request.Groups, nil
 }
@@ -376,7 +377,7 @@ func GetListOfGroups(srv *admin.Service) ([]*admin.Group, error) {
 func GetSettingOfGroup(srv *groupssettings.Service, groupId string) (*groupssettings.Groups, error) {
 	request, err := srv.Groups.Get(groupId).Do()
 	if err != nil {
-		return nil, fmt.Errorf("Unable to retrieve group's (%s) settings: %v", groupId, err)
+		return nil, fmt.Errorf("unable to retrieve group's (%s) settings: %v", groupId, err)
 	}
 	return request, nil
 }
@@ -386,7 +387,7 @@ func CreateGroup(srv admin.Service, grSrv groupssettings.Service, group *config.
 	newGroup, groupSettings := CreateGSuiteGroupFromConfig(group)
 	_, err := srv.Groups.Insert(newGroup).Do()
 	if err != nil {
-		return fmt.Errorf("Unable to insert a group: %v", err)
+		return fmt.Errorf("unable to insert a group: %v", err)
 	}
 	// add the members
 	for _, member := range group.Members {
@@ -395,7 +396,7 @@ func CreateGroup(srv admin.Service, grSrv groupssettings.Service, group *config.
 	// add the group's settings
 	_, err = grSrv.Groups.Update(newGroup.Email, groupSettings).Do()
 	if err != nil {
-		return fmt.Errorf("Unable to set the group settings: %v", err)
+		return fmt.Errorf("unable to set the group settings: %v", err)
 	}
 	return nil
 }
@@ -404,7 +405,7 @@ func CreateGroup(srv admin.Service, grSrv groupssettings.Service, group *config.
 func DeleteGroup(srv admin.Service, group *admin.Group) error {
 	err := srv.Groups.Delete(group.Email).Do()
 	if err != nil {
-		return fmt.Errorf("Unable to delete a group: %v", err)
+		return fmt.Errorf("unable to delete a group: %v", err)
 	}
 	return nil
 }
@@ -414,12 +415,12 @@ func UpdateGroup(srv admin.Service, grSrv groupssettings.Service, group *config.
 	updatedGroup, groupSettings := CreateGSuiteGroupFromConfig(group)
 	_, err := srv.Groups.Update(group.Email, updatedGroup).Do()
 	if err != nil {
-		return fmt.Errorf("Unable to update a group: %v", err)
+		return fmt.Errorf("unable to update a group: %v", err)
 	}
 	// update group's settings
 	_, err = grSrv.Groups.Update(group.Email, groupSettings).Do()
 	if err != nil {
-		return fmt.Errorf("Unable to update group settings: %v", err)
+		return fmt.Errorf("unable to update group settings: %v", err)
 	}
 
 	return nil
@@ -441,15 +442,25 @@ func CreateGSuiteGroupFromConfig(group *config.GroupConfig) (*admin.Group, *grou
 		WhoCanApproveMembers: group.WhoCanApproveMembers,
 		WhoCanPostMessage:    group.WhoCanPostMessage,
 		WhoCanJoin:           group.WhoCanJoin,
-		IsArchived:           group.IsArchived,
-		ArchiveOnly:          group.IsArchived,
-		AllowExternalMembers: group.AllowExternalMembers,
+		IsArchived:           strconv.FormatBool(group.IsArchived),
+		ArchiveOnly:          strconv.FormatBool(group.IsArchived),
+		AllowExternalMembers: strconv.FormatBool(group.AllowExternalMembers),
 	}
 
 	return googleGroup, groupSettings
 }
 
-func CreateConfigGroupFromGSuite(googleGroup *admin.Group, members []*admin.Member, gSettings *groupssettings.Groups) config.GroupConfig {
+func CreateConfigGroupFromGSuite(googleGroup *admin.Group, members []*admin.Member, gSettings *groupssettings.Groups) (config.GroupConfig, error) {
+
+	boolAllowExternalMembers, err := strconv.ParseBool(gSettings.AllowExternalMembers)
+	if err != nil {
+		return config.GroupConfig{}, fmt.Errorf("could not parse 'AllowExternalMembers' value from string to bool: %v", err)
+	}
+	boolIsArchived, err := strconv.ParseBool(gSettings.IsArchived)
+	if err != nil {
+		return config.GroupConfig{}, fmt.Errorf("could not parse 'IsArchived' value from string to bool: %v", err)
+	}
+
 	configGroup := config.GroupConfig{
 		Name:                 googleGroup.Name,
 		Email:                googleGroup.Email,
@@ -459,8 +470,8 @@ func CreateConfigGroupFromGSuite(googleGroup *admin.Group, members []*admin.Memb
 		WhoCanApproveMembers: gSettings.WhoCanApproveMembers,
 		WhoCanPostMessage:    gSettings.WhoCanPostMessage,
 		WhoCanJoin:           gSettings.WhoCanJoin,
-		AllowExternalMembers: gSettings.AllowExternalMembers,
-		IsArchived:           gSettings.IsArchived,
+		AllowExternalMembers: boolAllowExternalMembers,
+		IsArchived:           boolIsArchived,
 		Members:              []config.MemberConfig{},
 	}
 
@@ -472,7 +483,7 @@ func CreateConfigGroupFromGSuite(googleGroup *admin.Group, members []*admin.Memb
 
 	}
 
-	return configGroup
+	return configGroup, nil
 }
 
 //----------------------------------------//
@@ -483,7 +494,7 @@ func CreateConfigGroupFromGSuite(googleGroup *admin.Group, members []*admin.Memb
 func GetListOfMembers(srv *admin.Service, group *admin.Group) ([]*admin.Member, error) {
 	request, err := srv.Members.List(group.Email).Do()
 	if err != nil {
-		return nil, fmt.Errorf("Unable to retrieve members in group %s: %v", group.Name, err)
+		return nil, fmt.Errorf("unable to retrieve members in group %s: %v", group.Name, err)
 	}
 	return request.Members, nil
 }
@@ -493,7 +504,7 @@ func AddNewMember(srv admin.Service, groupEmail string, member *config.MemberCon
 	newMember := createGSuiteGroupMemberFromConfig(member)
 	_, err := srv.Members.Insert(groupEmail, newMember).Do()
 	if err != nil {
-		return fmt.Errorf("Unable to add a member to a group: %v", err)
+		return fmt.Errorf("unable to add a member to a group: %v", err)
 	}
 	return nil
 }
@@ -502,7 +513,7 @@ func AddNewMember(srv admin.Service, groupEmail string, member *config.MemberCon
 func RemoveMember(srv admin.Service, groupEmail string, member *admin.Member) error {
 	err := srv.Members.Delete(groupEmail, member.Email).Do()
 	if err != nil {
-		return fmt.Errorf("Unable to delete a member from a group: %v", err)
+		return fmt.Errorf("unable to delete a member from a group: %v", err)
 	}
 	return nil
 }
@@ -511,7 +522,7 @@ func RemoveMember(srv admin.Service, groupEmail string, member *admin.Member) er
 func MemberExists(srv admin.Service, group *admin.Group, member *config.MemberConfig) (bool, error) {
 	exists, err := srv.Members.HasMember(group.Email, member.Email).Do()
 	if err != nil {
-		return false, fmt.Errorf("Unable to check if member %s exists in a group %s: %v", member.Email, group.Name, err)
+		return false, fmt.Errorf("unable to check if member %s exists in a group %s: %v", member.Email, group.Name, err)
 	}
 	return exists.IsMember, nil
 }
@@ -522,7 +533,7 @@ func UpdateMembership(srv admin.Service, groupEmail string, member *config.Membe
 	newMember := createGSuiteGroupMemberFromConfig(member)
 	_, err := srv.Members.Update(groupEmail, member.Email, newMember).Do()
 	if err != nil {
-		return fmt.Errorf("Unable to update a member in a group: %v", err)
+		return fmt.Errorf("unable to update a member in a group: %v", err)
 	}
 	return nil
 }
@@ -544,7 +555,7 @@ func createGSuiteGroupMemberFromConfig(member *config.MemberConfig) *admin.Membe
 func GetListOfOrgUnits(srv *admin.Service) ([]*admin.OrgUnit, error) {
 	request, err := srv.Orgunits.List("my_customer").Type("all").Do()
 	if err != nil {
-		return nil, fmt.Errorf("Unable to list OrgUnits in domain: %v", err)
+		return nil, fmt.Errorf("unable to list OrgUnits in domain: %v", err)
 	}
 	return request.OrganizationUnits, nil
 }
@@ -554,7 +565,7 @@ func CreateOrgUnit(srv admin.Service, ou *config.OrgUnitConfig) error {
 	newOU := createGSuiteOUFromConfig(ou)
 	_, err := srv.Orgunits.Insert("my_customer", newOU).Do()
 	if err != nil {
-		return fmt.Errorf("Unable to create an org unit: %v", err)
+		return fmt.Errorf("unable to create an org unit: %v", err)
 	}
 	return nil
 }
@@ -571,7 +582,7 @@ func DeleteOrgUnit(srv admin.Service, ou *admin.OrgUnit) error {
 
 	err := srv.Orgunits.Delete("my_customer", orgUPath).Do()
 	if err != nil {
-		return fmt.Errorf("Unable to delete an org unit: %v", err)
+		return fmt.Errorf("unable to delete an org unit: %v", err)
 	}
 	return nil
 }
@@ -589,7 +600,7 @@ func UpdateOrgUnit(srv admin.Service, ou *config.OrgUnitConfig) error {
 
 	_, err := srv.Orgunits.Update("my_customer", orgUPath, updatedOu).Do()
 	if err != nil {
-		return fmt.Errorf("Unable to update an org unit: %v", err)
+		return fmt.Errorf("unable to update an org unit: %v", err)
 	}
 	return nil
 }

@@ -115,7 +115,6 @@ func main() {
 		if err != nil {
 			log.Fatalf("⚠ Failed to export %v.", err)
 		}
-
 		if err := config.SaveToFile(newConfig, configFile); err != nil {
 			log.Fatalf("⚠ Failed to update config file: %v.", err)
 		}

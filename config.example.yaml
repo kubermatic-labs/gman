@@ -95,10 +95,10 @@ groups:
     # - CAN_REQUEST_TO_JOIN: Non members can request an invitation to join
     who_can_join: CAN_REQUEST_TO_JOIN
     # Identifies whether members external to your organization can join the group. 
-    # Possible values are: "true" or "false"
-    allow_external_members: "false"
-    # Allows the Group contents to be archived. Possible values are: "true" or "false"
-    is_archived: "false"
+    # Possible values are: true or false
+    allow_external_members: false
+    # Allows the Group contents to be archived. Possible values are: true or false
+    is_archived: false
     # list of members 
     members:
       - email: horst@myorganization.com
