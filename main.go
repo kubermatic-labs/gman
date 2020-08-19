@@ -65,8 +65,12 @@ func main() {
 
 	// validate config unless in export mode, where an incomplete configuration is allowed and even expected
 	if !exportMode {
-		if err := cfg.Validate(); err != nil {
-			log.Fatalf("⚠ Configuration is invalid: %v", err)
+		if errs := cfg.Validate(); errs != nil {
+			log.Println("Configuration is invalid:")
+			for _, e := range errs {
+				log.Printf(" ⚠  %v\n", e)
+			}
+			os.Exit(1)
 		} else {
 			log.Println("✓ Configuration is valid.")
 		}
@@ -96,17 +100,21 @@ func main() {
 
 	srv, err := glib.NewDirectoryService(clientSecretFile, impersonatedUserEmail)
 	if err != nil {
-		log.Fatalf("⚠ Failed to create GSuite API client (CreateDirectoryService): %v", err)
+		log.Fatalf("⚠ Failed to create GSuite Directory API client: %v", err)
+	}
+
+	grSrv, err := glib.NewGroupsService(clientSecretFile, impersonatedUserEmail)
+	if err != nil {
+		log.Fatalf("⚠ Failed to create GSuite Groupssettings API client: %v", err)
 	}
 
 	if exportMode {
 		log.Printf("► Exporting organization %s…", cfg.Organization)
 
-		newConfig, err := export.ExportConfiguration(ctx, cfg.Organization, srv)
+		newConfig, err := export.ExportConfiguration(ctx, cfg.Organization, srv, grSrv)
 		if err != nil {
-			log.Fatalf("⚠ Failed to export: %v.", err)
+			log.Fatalf("⚠ Failed to export %v.", err)
 		}
-
 		if err := config.SaveToFile(newConfig, configFile); err != nil {
 			log.Fatalf("⚠ Failed to update config file: %v.", err)
 		}
@@ -117,7 +125,7 @@ func main() {
 
 	log.Printf("► Updating organization %s…", cfg.Organization)
 
-	err = sync.SyncConfiguration(ctx, cfg, srv, confirm)
+	err = sync.SyncConfiguration(ctx, cfg, srv, grSrv, confirm)
 	if err != nil {
 		log.Fatalf("⚠ Failed to sync state: %v.", err)
 	}

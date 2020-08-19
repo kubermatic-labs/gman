@@ -40,11 +40,24 @@ The Directory API is intended for management of devices, groups, group members, 
 To be able to use it, please make sure that you have access to an admin account in the Admin Console and you have set up your API. 
 For more detailed information, see [the official Google documentation](https://developers.google.com/admin-sdk/directory/v1/guides/prerequisites).
 
+Moreover, to access the extended settings of the groups, the Groups Settings API must be enabled as well (see [the official documentation](https://developers.google.com/admin-sdk/groups-settings/prerequisites#prereqs-enableapis)).
+
+
 ### Service account 
 
 To authorize and to perform the operations on behalf of *Gman* a Service Account is required. 
+After creating one, it needs to be registered as an API client and have enabled this OAuth scopes: 
 
-Please, create one and generate a Key (save the *.json* config). 
+* https://www.googleapis.com/auth/admin.directory.user
+* https://www.googleapis.com/auth/admin.directory.orgunit
+* https://www.googleapis.com/auth/admin.directory.group
+* https://www.googleapis.com/auth/admin.directory.group.member
+* https://www.googleapis.com/auth/apps.groups.settings
+* https://www.googleapis.com/auth/admin.directory.resource.calendar
+  
+Those scopes can be added in Admin console under *Security -> API Controls -> Domain-wide Delegation*.
+
+Furthermore, please, generate a Key (save the *.json* config) for this Service Account. 
 For more detailed information, follow [the official instructions](https://developers.google.com/admin-sdk/directory/v1/guides/delegation#create_the_service_account_and_credentials).
 
 The Service Account private key must be provided to *Gman*. There are two ways to do so: 
@@ -65,7 +78,8 @@ The impersonated email must be specified in *Gman*. There are two ways to do so:
 
 ### Config YAML 
 
-All configuration of the users happens in a YAML file. See the annotated [config.example.yaml](/config.example.yaml) for more information.
+All configuration of the users happens in a YAML file. See the annotated [config.example.yaml](/config.example.yaml) for more information, available parameters and example usage.
+
 This file must be created beforehand with the minimal configuration, i.e. organization name specified. 
 In order to get the initial config of the users that are already in place in your Organizaiton, run *Gman* with `-export` flag specified, so the depicted on your side YAML can be populated. 
 
@@ -73,6 +87,7 @@ There are two ways to specify the path to the configuration YAML file:
 
 - set up environmental variable: `GMAN_CONFIG_FILE=<VALUE>` 
 - start the application with specified flag `-config <value>`
+
 
 ## Usage
 
@@ -249,7 +264,7 @@ $ gman -config myconfig.yaml -confirm
 Due to the fact that it is impossible to automate the send out of the login information email via Google API there are two possibilities to enable the first log in of the new users: 
 
 - manually send the login information email from admin console via _RESET PASSWORD_ option (follow instructions on [this official Google documentation](https://support.google.com/a/answer/33319?hl=en))
-- set up a password recovery for users (follow [this official Google documentation](https://support.google.com/a/answer/33382?p=accnt_recovery_users&visit_id=637279854011127407-389630162&rd=1&hl=en) to perform it). *Gman* sets te secondary email address as a recovery email; hence, in your onboarding message you should inform the users about their new GSuite email address and that on the first login, the _Forgot password?_ option should be chosen, so the verification code can be sent to to the private secondary email. 
+- set up a password recovery for users (follow [this official Google documentation](https://support.google.com/a/answer/33382?p=accnt_recovery_users&visit_id=637279854011127407-389630162&rd=1&hl=en) to perform it). This requires the `recovery_email` field to be set for the users. Hence, in the onboarding message the new users ought to be informed about their new GSuite email address and that on the first login, the _Forgot password?_ option should be chosen, so the verification code can be sent to to the private recovery email. 
 
 ## Changelog
 

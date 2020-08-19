@@ -8,23 +8,24 @@ import (
 	"github.com/kubermatic-labs/gman/pkg/config"
 	"github.com/kubermatic-labs/gman/pkg/glib"
 	admin "google.golang.org/api/admin/directory/v1"
+	groupssettings "google.golang.org/api/groupssettings/v1"
 )
 
-func ExportConfiguration(ctx context.Context, organization string, clientService *admin.Service) (*config.Config, error) {
+func ExportConfiguration(ctx context.Context, organization string, clientService *admin.Service, groupService *groupssettings.Service) (*config.Config, error) {
 	cfg := &config.Config{
 		Organization: organization,
 	}
 
 	if err := exportOrgUnits(ctx, clientService, cfg); err != nil {
-		return cfg, fmt.Errorf("failed to export org units: %v", err)
+		return cfg, fmt.Errorf("org units: %v", err)
 	}
 
 	if err := exportUsers(ctx, clientService, cfg); err != nil {
-		return cfg, fmt.Errorf("failed to export users: %v", err)
+		return cfg, fmt.Errorf("users: %v", err)
 	}
 
-	if err := exportGroups(ctx, clientService, cfg); err != nil {
-		return cfg, fmt.Errorf("failed to export groups: %v", err)
+	if err := exportGroups(ctx, clientService, groupService, cfg); err != nil {
+		return cfg, fmt.Errorf("groups: %v", err)
 	}
 
 	return cfg, nil
@@ -33,7 +34,10 @@ func ExportConfiguration(ctx context.Context, organization string, clientService
 func exportUsers(ctx context.Context, clientService *admin.Service, cfg *config.Config) error {
 	log.Println("⇄ Exporting users from GSuite...")
 	// get the users array
-	users, _ := glib.GetListOfUsers(*clientService)
+	users, err := glib.GetListOfUsers(*clientService)
+	if err != nil {
+		return err
+	}
 
 	// save to file
 	if len(users) == 0 {
@@ -41,25 +45,22 @@ func exportUsers(ctx context.Context, clientService *admin.Service, cfg *config.
 	} else {
 		for _, u := range users {
 			// get emails
-			primaryEmail, secondaryEmail := glib.GetUserEmails(u)
-
-			cfg.Users = append(cfg.Users, config.UserConfig{
-				FirstName:      u.Name.GivenName,
-				LastName:       u.Name.FamilyName,
-				PrimaryEmail:   primaryEmail,
-				SecondaryEmail: secondaryEmail,
-				OrgUnitPath:    u.OrgUnitPath,
-			})
+			//primaryEmail, secondaryEmail := glib.GetUserEmails(u)
+			usr := glib.CreateConfigUserFromGSuite(u)
+			cfg.Users = append(cfg.Users, usr)
 		}
 	}
 
 	return nil
 }
 
-func exportGroups(ctx context.Context, clientService *admin.Service, cfg *config.Config) error {
+func exportGroups(ctx context.Context, clientService *admin.Service, groupService *groupssettings.Service, cfg *config.Config) error {
 	log.Println("⇄ Exporting groups from GSuite...")
 	// get the groups array
-	groups, _ := glib.GetListOfGroups(clientService)
+	groups, err := glib.GetListOfGroups(clientService)
+	if err != nil {
+		return err
+	}
 	var members []*admin.Member
 
 	// save to file
@@ -67,20 +68,19 @@ func exportGroups(ctx context.Context, clientService *admin.Service, cfg *config
 		log.Println("⚠ No groups found.")
 	} else {
 		for _, g := range groups {
-			members, _ = glib.GetListOfMembers(clientService, g)
-			thisGroup := config.GroupConfig{
-				Name:        g.Name,
-				Email:       g.Email,
-				Description: g.Description,
-				Members:     []config.MemberConfig{},
+			members, err = glib.GetListOfMembers(clientService, g)
+			if err != nil {
+				return err
 			}
-			for _, m := range members {
-				thisGroup.Members = append(thisGroup.Members, config.MemberConfig{
-					Email: m.Email,
-					Role:  m.Role,
-				})
+			gSettings, err := glib.GetSettingOfGroup(groupService, g.Email)
+			if err != nil {
+				return err
+			}
+			thisGroup, err := glib.CreateConfigGroupFromGSuite(g, members, gSettings)
+			if err != nil {
+				return err
+			}
 
-			}
 			cfg.Groups = append(cfg.Groups, thisGroup)
 		}
 	}
@@ -91,7 +91,10 @@ func exportGroups(ctx context.Context, clientService *admin.Service, cfg *config
 func exportOrgUnits(ctx context.Context, clientService *admin.Service, cfg *config.Config) error {
 	log.Println("⇄ Exporting organizational units from GSuite...")
 	// get the users array
-	orgUnits, _ := glib.GetListOfOrgUnits(clientService)
+	orgUnits, err := glib.GetListOfOrgUnits(clientService)
+	if err != nil {
+		return err
+	}
 
 	// save to file
 	if len(orgUnits) == 0 {
