@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"strconv"
 
 	"github.com/kubermatic-labs/gman/pkg/config"
@@ -12,6 +13,7 @@ import (
 	"golang.org/x/oauth2/google"
 	admin "google.golang.org/api/admin/directory/v1"
 	groupssettings "google.golang.org/api/groupssettings/v1"
+	"google.golang.org/api/licensing/v1"
 	"google.golang.org/api/option"
 )
 
@@ -61,6 +63,31 @@ func NewGroupsService(clientSecretFile string, impersonatedUserEmail string) (*g
 	srv, err := groupssettings.NewService(ctx, option.WithTokenSource(ts))
 	if err != nil {
 		return nil, fmt.Errorf("unable to create a new Groupssettings Service: %v", err)
+	}
+	return srv, nil
+}
+
+// NewLicensingService() creates a client for communicating with Google Licensing API,
+// returns a service object authorized to perform actions in Gsuite.
+func NewLicensingService(clientSecretFile string, impersonatedUserEmail string) (*licensing.Service, error) {
+	ctx := context.Background()
+
+	jsonCredentials, err := ioutil.ReadFile(clientSecretFile)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read json credentials (clientSecretFile): %v", err)
+	}
+
+	config, err := google.JWTConfigFromJSON(jsonCredentials, licensing.AppsLicensingScope)
+	if err != nil {
+		return nil, fmt.Errorf("unable to process credentials: %v", err)
+	}
+	config.Subject = impersonatedUserEmail
+
+	ts := config.TokenSource(ctx)
+
+	srv, err := licensing.NewService(ctx, option.WithTokenSource(ts))
+	if err != nil {
+		return nil, fmt.Errorf("unable to create a new Licensing Service: %v", err)
 	}
 	return srv, nil
 }
@@ -617,4 +644,155 @@ func createGSuiteOUFromConfig(ou *config.OrgUnitConfig) *admin.OrgUnit {
 	}
 
 	return googleOU
+}
+
+//----------------------------------------//
+//   Licenses handling                    //
+//----------------------------------------//
+
+type License struct {
+	productId string
+	skuId     string
+	name      string // used in yaml
+}
+
+var googleLicenses = []License{
+	{
+		productId: "Google-Apps",
+		skuId:     "1010020020", // G Suite Enterprise
+		name:      "GSuiteEnterprise",
+	},
+	{
+		productId: "Google-Apps",
+		skuId:     "Google-Apps-Unlimited", // G Suite Business
+		name:      "GSuiteBusiness",
+	},
+	{
+		productId: "Google-Apps",
+		skuId:     "Google-Apps-For-Business", // G Suite Basic
+		name:      "GSuiteBasic",
+	},
+	{
+		productId: "Google-Apps",
+		skuId:     "1010060001", // G Suite Essentials
+		name:      "GSuiteEssentials",
+	},
+	{
+		productId: "Google-Apps",
+		skuId:     "Google-Apps-Lite", // G Suite Lite
+		name:      "GSuiteLite",
+	},
+	{
+		productId: "Google-Apps",
+		skuId:     "Google-Apps-For-Postini", // Google Apps Message Security
+		name:      "GoogleAppsMessageSecurity",
+	},
+	{
+		productId: "101031",     // G Suite Enterprise for Education
+		skuId:     "1010310002", // G Suite Enterprise for Education
+		name:      "GSuiteEducation",
+	},
+	{
+		productId: "101031",     // G Suite Enterprise for Education
+		skuId:     "1010310003", // G Suite Enterprise for Education (Student)
+		name:      "GSuiteEducationStudent",
+	},
+	{
+		productId: "Google-Drive-storage",
+		skuId:     "Google-Drive-storage-20GB",
+		name:      "GoogleDrive20GB",
+	},
+	{
+		productId: "Google-Drive-storage",
+		skuId:     "Google-Drive-storage-50GB",
+		name:      "GoogleDrive50GB",
+	},
+	{
+		productId: "Google-Drive-storage",
+		skuId:     "Google-Drive-storage-200GB",
+		name:      "GoogleDrive200GB",
+	},
+	{
+		productId: "Google-Drive-storage",
+		skuId:     "Google-Drive-storage-400GB",
+		name:      "GoogleDrive400GB",
+	},
+	{
+		productId: "Google-Drive-storage",
+		skuId:     "Google-Drive-storage-1TB",
+		name:      "GoogleDrive1TB",
+	},
+	{
+		productId: "Google-Drive-storage",
+		skuId:     "Google-Drive-storage-2TB",
+		name:      "GoogleDrive2TB",
+	},
+	{
+		productId: "Google-Drive-storage",
+		skuId:     "Google-Drive-storage-4TB",
+		name:      "GoogleDrive4TB",
+	},
+	{
+		productId: "Google-Drive-storage",
+		skuId:     "Google-Drive-storage-8TB",
+		name:      "GoogleDrive8TB",
+	},
+	{
+		productId: "Google-Drive-storage",
+		skuId:     "Google-Drive-storage-16TB",
+		name:      "GoogleDrive16TB",
+	},
+	{
+		productId: "Google-Vault",
+		skuId:     "Google-Vault",
+		name:      "GoogleVault",
+	},
+	{
+		productId: "Google-Vault",
+		skuId:     "Google-Vault-Former-Employee",
+		name:      "GoogleVaultFormerEmployee",
+	},
+	{
+		productId: "101001", // Cloud Identity
+		skuId:     "1010010001",
+		name:      "CloudIdentity",
+	},
+	{
+		productId: "101005", // Cloud Identity Premium
+		skuId:     "1010050001",
+		name:      "CloudIdentityPremium",
+	},
+	{
+		productId: "101033", // Google Voice
+		skuId:     "1010330003",
+		name:      "GoogleVoiceStarter",
+	},
+	{
+		productId: "101033", // Google Voice
+		skuId:     "1010330004",
+		name:      "GoogleVoiceStandard",
+	},
+	{
+		productId: "101033", // Google Voice
+		skuId:     "1010330002",
+		name:      "GoogleVoicePremier",
+	},
+}
+
+// GetUserLicense returns a list of licenses of a user
+func GetUserLicenses(srv licensing.Service, user string) ([]licensing.LicenseAssignment, error) {
+	userLicenses := []licensing.LicenseAssignment{}
+
+	for _, license := range googleLicenses {
+		request, err := srv.LicenseAssignments.Get(license.productId, license.skuId, user).Do()
+		if err != nil {
+			log.Fatalf("Unable to retrieve license in domain: %v", err)
+			return nil, err
+		}
+		fmt.Println(request)
+		userLicenses = append(userLicenses, *request)
+	}
+
+	//fmt.Println()
+	return userLicenses, nil
 }

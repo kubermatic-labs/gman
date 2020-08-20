@@ -108,10 +108,15 @@ func main() {
 		log.Fatalf("⚠ Failed to create GSuite Groupssettings API client: %v", err)
 	}
 
+	licSrv, err := glib.NewLicensingService(clientSecretFile, impersonatedUserEmail)
+	if err != nil {
+		log.Fatalf("⚠ Failed to create GSuite Licensing API client: %v", err)
+	}
+
 	if exportMode {
 		log.Printf("► Exporting organization %s…", cfg.Organization)
 
-		newConfig, err := export.ExportConfiguration(ctx, cfg.Organization, srv, grSrv)
+		newConfig, err := export.ExportConfiguration(ctx, cfg.Organization, srv, grSrv, licSrv)
 		if err != nil {
 			log.Fatalf("⚠ Failed to export %v.", err)
 		}
