@@ -52,6 +52,7 @@ func exportUsers(ctx context.Context, clientService *admin.Service, licensingSer
 
 			// test for licensing. TODO: ERASE
 			if u.Name.GivenName == "Marta" {
+				fmt.Println(" > GetUserLicenses... ")
 				glib.GetUserLicenses(*licensingService, u.PrimaryEmail)
 			}
 

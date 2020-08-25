@@ -783,11 +783,26 @@ var googleLicenses = []License{
 func GetUserLicenses(srv licensing.Service, user string) ([]licensing.LicenseAssignment, error) {
 	userLicenses := []licensing.LicenseAssignment{}
 
+	fmt.Println(" >> trying listForProductAndSku")
+	for _, license := range googleLicenses {
+		request, err := srv.LicenseAssignments.ListForProductAndSku(license.productId, license.skuId, "loodse.training").Do()
+		fmt.Println(license.name)
+		if err != nil {
+			log.Printf("Unable to retrieve license in domain: %v", err)
+			//return nil, err
+		}
+
+		fmt.Println(request)
+	}
+
+	fmt.Println(" >> trying list for user")
 	for _, license := range googleLicenses {
 		request, err := srv.LicenseAssignments.Get(license.productId, license.skuId, user).Do()
 		if err != nil {
-			log.Fatalf("Unable to retrieve license in domain: %v", err)
-			return nil, err
+			fmt.Println(err)
+			fmt.Println(request)
+			//log.Printf("Unable to retrieve license in domain: %v", err)
+			//return nil, err
 		}
 		fmt.Println(request)
 		userLicenses = append(userLicenses, *request)
