@@ -130,7 +130,7 @@ func main() {
 
 	log.Printf("► Updating organization %s…", cfg.Organization)
 
-	err = sync.SyncConfiguration(ctx, cfg, srv, grSrv, confirm)
+	err = sync.SyncConfiguration(ctx, cfg, srv, grSrv, licSrv, confirm)
 	if err != nil {
 		log.Fatalf("⚠ Failed to sync state: %v.", err)
 	}

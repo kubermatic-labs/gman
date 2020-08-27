@@ -78,7 +78,7 @@ The impersonated email must be specified in *Gman*. There are two ways to do so:
 
 ### Config YAML 
 
-All configuration of the users happens in a YAML file. See the annotated [config.example.yaml](/config.example.yaml) for more information, available parameters and example usage.
+All configuration of the users happens in a YAML file. See the [configuration documentation](/Configuration.md) for more information, available parameters and values, or refer to the annotated [config.example.yaml](/config.example.yaml) for the example usage.
 
 This file must be created beforehand with the minimal configuration, i.e. organization name specified. 
 In order to get the initial config of the users that are already in place in your Organizaiton, run *Gman* with `-export` flag specified, so the depicted on your side YAML can be populated. 

@@ -10,14 +10,15 @@ import (
 	"github.com/kubermatic-labs/gman/pkg/glib"
 	admin "google.golang.org/api/admin/directory/v1"
 	"google.golang.org/api/groupssettings/v1"
+	"google.golang.org/api/licensing/v1"
 )
 
-func SyncConfiguration(ctx context.Context, cfg *config.Config, clientService *admin.Service, groupService *groupssettings.Service, confirm bool) error {
+func SyncConfiguration(ctx context.Context, cfg *config.Config, clientService *admin.Service, groupService *groupssettings.Service, licensingService *licensing.Service, confirm bool) error {
 
 	if err := SyncOrgUnits(ctx, clientService, cfg, confirm); err != nil {
 		return fmt.Errorf("failed to sync users: %v", err)
 	}
-	if err := SyncUsers(ctx, clientService, cfg, confirm); err != nil {
+	if err := SyncUsers(ctx, clientService, licensingService, cfg, confirm); err != nil {
 		return fmt.Errorf("failed to sync users: %v", err)
 	}
 	if err := SyncGroups(ctx, clientService, groupService, cfg, confirm); err != nil {
@@ -28,7 +29,7 @@ func SyncConfiguration(ctx context.Context, cfg *config.Config, clientService *a
 }
 
 // TODO: SWAP FOR SLICE CHECK ??
-func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Config, confirm bool) error {
+func SyncUsers(ctx context.Context, clientService *admin.Service, licensingService *licensing.Service, cfg *config.Config, confirm bool) error {
 	var (
 		usersToDelete []*admin.User
 		usersToCreate []config.UserConfig
@@ -54,7 +55,12 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 				if configUser.PrimaryEmail == currentUser.PrimaryEmail {
 					found = true
 					// user is existing & should exist, so check if needs an update
-					currentUserConfig := glib.CreateConfigUserFromGSuite(currentUser)
+					// get user licenses
+					currentUserLicenses, err := glib.GetUserLicenses(licensingService, currentUser.PrimaryEmail)
+					if err != nil {
+						return err
+					}
+					currentUserConfig := glib.CreateConfigUserFromGSuite(currentUser, currentUserLicenses)
 					if !reflect.DeepEqual(currentUserConfig, configUser) {
 						usersToUpdate = append(usersToUpdate, configUser)
 					}
@@ -84,7 +90,7 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 		if usersToCreate != nil {
 			log.Println("Creating...")
 			for _, user := range usersToCreate {
-				err := glib.CreateUser(*clientService, &user)
+				err := glib.CreateUser(*clientService, *licensingService, &user)
 				if err != nil {
 					return fmt.Errorf("⚠ Failed to create user %s: %v.", user.PrimaryEmail, err)
 				} else {
@@ -106,7 +112,7 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, cfg *config.Co
 		if usersToUpdate != nil {
 			log.Println("Updating...")
 			for _, user := range usersToUpdate {
-				err := glib.UpdateUser(*clientService, &user)
+				err := glib.UpdateUser(*clientService, *licensingService, &user)
 				if err != nil {
 					return fmt.Errorf("⚠ Failed to update user %s: %v.", user.PrimaryEmail, err)
 				} else {

@@ -45,16 +45,13 @@ func exportUsers(ctx context.Context, clientService *admin.Service, licensingSer
 		log.Println("⚠ No users found.")
 	} else {
 		for _, u := range users {
-			// get emails
-			//primaryEmail, secondaryEmail := glib.GetUserEmails(u)
-			usr := glib.CreateConfigUserFromGSuite(u)
-			cfg.Users = append(cfg.Users, usr)
-
-			// test for licensing. TODO: ERASE
-			if u.Name.GivenName == "Marta" {
-				fmt.Println(" > GetUserLicenses... ")
-				glib.GetUserLicenses(*licensingService, u.PrimaryEmail)
+			// get user licenses
+			userLicenses, err := glib.GetUserLicenses(licensingService, u.PrimaryEmail)
+			if err != nil {
+				return err
 			}
+			usr := glib.CreateConfigUserFromGSuite(u, userLicenses)
+			cfg.Users = append(cfg.Users, usr)
 
 		}
 	}

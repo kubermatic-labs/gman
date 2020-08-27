@@ -5,13 +5,13 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"strconv"
 
 	"github.com/kubermatic-labs/gman/pkg/config"
 	password "github.com/sethvargo/go-password/password"
 	"golang.org/x/oauth2/google"
 	admin "google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/googleapi"
 	groupssettings "google.golang.org/api/groupssettings/v1"
 	"google.golang.org/api/licensing/v1"
 	"google.golang.org/api/option"
@@ -121,7 +121,7 @@ func GetUserEmails(user *admin.User) (string, string) {
 }
 
 // CreateUser creates a new user in GSuite via their API
-func CreateUser(srv admin.Service, user *config.UserConfig) error {
+func CreateUser(srv admin.Service, licensingSrv licensing.Service, user *config.UserConfig) error {
 	// generate a rand password
 	pass, err := password.Generate(20, 5, 5, false, false)
 	if err != nil {
@@ -136,7 +136,15 @@ func CreateUser(srv admin.Service, user *config.UserConfig) error {
 		return fmt.Errorf("unable to insert a user: %v", err)
 	}
 
-	HandleUserAliases(srv, newUser, user.Aliases)
+	err = HandleUserAliases(srv, newUser, user.Aliases)
+	if err != nil {
+		return err
+	}
+
+	err = HandleUserLicenses(licensingSrv, newUser, user.Licenses)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -151,18 +159,27 @@ func DeleteUser(srv admin.Service, user *admin.User) error {
 }
 
 // UpdateUser updates the remote user with config
-func UpdateUser(srv admin.Service, user *config.UserConfig) error {
+func UpdateUser(srv admin.Service, licensingSrv licensing.Service, user *config.UserConfig) error {
 	updatedUser := createGSuiteUserFromConfig(srv, user)
 	_, err := srv.Users.Update(user.PrimaryEmail, updatedUser).Do()
 	if err != nil {
 		return fmt.Errorf("unable to update a user %s: %v", user.PrimaryEmail, err)
 	}
 
-	HandleUserAliases(srv, updatedUser, user.Aliases)
+	err = HandleUserAliases(srv, updatedUser, user.Aliases)
+	if err != nil {
+		return err
+	}
+
+	err = HandleUserLicenses(licensingSrv, updatedUser, user.Licenses)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
+// HandleUserAliases provides logic for creating/deleting/updating aiases
 func HandleUserAliases(srv admin.Service, googleUser *admin.User, configAliases []string) error {
 	request, err := srv.Users.Aliases.List(googleUser.PrimaryEmail).Do()
 	if err != nil {
@@ -318,7 +335,7 @@ func createGSuiteUserFromConfig(srv admin.Service, user *config.UserConfig) *adm
 }
 
 // createConfigUserFromGSuite converts a (GSuite) admin.User to ConfigUser
-func CreateConfigUserFromGSuite(googleUser *admin.User) config.UserConfig {
+func CreateConfigUserFromGSuite(googleUser *admin.User, userLicenses []License) config.UserConfig {
 	// get emails
 	primaryEmail, secondaryEmail := GetUserEmails(googleUser)
 
@@ -381,6 +398,12 @@ func CreateConfigUserFromGSuite(googleUser *admin.User) config.UserConfig {
 			if addr.(map[string]interface{})["type"] == "home" {
 				configUser.Address = fmt.Sprint(addr.(map[string]interface{})["formatted"])
 			}
+		}
+	}
+
+	if len(userLicenses) > 0 {
+		for _, userLicense := range userLicenses {
+			configUser.Licenses = append(configUser.Licenses, userLicense.name)
 		}
 	}
 
@@ -650,164 +673,84 @@ func createGSuiteOUFromConfig(ou *config.OrgUnitConfig) *admin.OrgUnit {
 //   Licenses handling                    //
 //----------------------------------------//
 
-type License struct {
-	productId string
-	skuId     string
-	name      string // used in yaml
-}
-
-var googleLicenses = []License{
-	{
-		productId: "Google-Apps",
-		skuId:     "1010020020", // G Suite Enterprise
-		name:      "GSuiteEnterprise",
-	},
-	{
-		productId: "Google-Apps",
-		skuId:     "Google-Apps-Unlimited", // G Suite Business
-		name:      "GSuiteBusiness",
-	},
-	{
-		productId: "Google-Apps",
-		skuId:     "Google-Apps-For-Business", // G Suite Basic
-		name:      "GSuiteBasic",
-	},
-	{
-		productId: "Google-Apps",
-		skuId:     "1010060001", // G Suite Essentials
-		name:      "GSuiteEssentials",
-	},
-	{
-		productId: "Google-Apps",
-		skuId:     "Google-Apps-Lite", // G Suite Lite
-		name:      "GSuiteLite",
-	},
-	{
-		productId: "Google-Apps",
-		skuId:     "Google-Apps-For-Postini", // Google Apps Message Security
-		name:      "GoogleAppsMessageSecurity",
-	},
-	{
-		productId: "101031",     // G Suite Enterprise for Education
-		skuId:     "1010310002", // G Suite Enterprise for Education
-		name:      "GSuiteEducation",
-	},
-	{
-		productId: "101031",     // G Suite Enterprise for Education
-		skuId:     "1010310003", // G Suite Enterprise for Education (Student)
-		name:      "GSuiteEducationStudent",
-	},
-	{
-		productId: "Google-Drive-storage",
-		skuId:     "Google-Drive-storage-20GB",
-		name:      "GoogleDrive20GB",
-	},
-	{
-		productId: "Google-Drive-storage",
-		skuId:     "Google-Drive-storage-50GB",
-		name:      "GoogleDrive50GB",
-	},
-	{
-		productId: "Google-Drive-storage",
-		skuId:     "Google-Drive-storage-200GB",
-		name:      "GoogleDrive200GB",
-	},
-	{
-		productId: "Google-Drive-storage",
-		skuId:     "Google-Drive-storage-400GB",
-		name:      "GoogleDrive400GB",
-	},
-	{
-		productId: "Google-Drive-storage",
-		skuId:     "Google-Drive-storage-1TB",
-		name:      "GoogleDrive1TB",
-	},
-	{
-		productId: "Google-Drive-storage",
-		skuId:     "Google-Drive-storage-2TB",
-		name:      "GoogleDrive2TB",
-	},
-	{
-		productId: "Google-Drive-storage",
-		skuId:     "Google-Drive-storage-4TB",
-		name:      "GoogleDrive4TB",
-	},
-	{
-		productId: "Google-Drive-storage",
-		skuId:     "Google-Drive-storage-8TB",
-		name:      "GoogleDrive8TB",
-	},
-	{
-		productId: "Google-Drive-storage",
-		skuId:     "Google-Drive-storage-16TB",
-		name:      "GoogleDrive16TB",
-	},
-	{
-		productId: "Google-Vault",
-		skuId:     "Google-Vault",
-		name:      "GoogleVault",
-	},
-	{
-		productId: "Google-Vault",
-		skuId:     "Google-Vault-Former-Employee",
-		name:      "GoogleVaultFormerEmployee",
-	},
-	{
-		productId: "101001", // Cloud Identity
-		skuId:     "1010010001",
-		name:      "CloudIdentity",
-	},
-	{
-		productId: "101005", // Cloud Identity Premium
-		skuId:     "1010050001",
-		name:      "CloudIdentityPremium",
-	},
-	{
-		productId: "101033", // Google Voice
-		skuId:     "1010330003",
-		name:      "GoogleVoiceStarter",
-	},
-	{
-		productId: "101033", // Google Voice
-		skuId:     "1010330004",
-		name:      "GoogleVoiceStandard",
-	},
-	{
-		productId: "101033", // Google Voice
-		skuId:     "1010330002",
-		name:      "GoogleVoicePremier",
-	},
-}
-
 // GetUserLicense returns a list of licenses of a user
-func GetUserLicenses(srv licensing.Service, user string) ([]licensing.LicenseAssignment, error) {
-	userLicenses := []licensing.LicenseAssignment{}
-
-	fmt.Println(" >> trying listForProductAndSku")
+func GetUserLicenses(srv *licensing.Service, user string) ([]License, error) {
+	var userLicenses []License
 	for _, license := range googleLicenses {
-		request, err := srv.LicenseAssignments.ListForProductAndSku(license.productId, license.skuId, "loodse.training").Do()
-		fmt.Println(license.name)
+		_, err := srv.LicenseAssignments.Get(license.productId, license.skuId, user).Do()
 		if err != nil {
-			log.Printf("Unable to retrieve license in domain: %v", err)
-			//return nil, err
+			if err.(*googleapi.Error).Code == 404 {
+				// license doesnt exists
+				break
+			} else {
+				return nil, fmt.Errorf("unable to retrieve license in domain: %v", err)
+			}
 		}
-
-		fmt.Println(request)
+		userLicenses = append(userLicenses, license)
 	}
 
-	fmt.Println(" >> trying list for user")
-	for _, license := range googleLicenses {
-		request, err := srv.LicenseAssignments.Get(license.productId, license.skuId, user).Do()
-		if err != nil {
-			fmt.Println(err)
-			fmt.Println(request)
-			//log.Printf("Unable to retrieve license in domain: %v", err)
-			//return nil, err
-		}
-		fmt.Println(request)
-		userLicenses = append(userLicenses, *request)
-	}
-
-	//fmt.Println()
 	return userLicenses, nil
+}
+
+// HandleUserLicenses provides logic for creating/deleting/updating licenses according to config file
+func HandleUserLicenses(srv licensing.Service, googleUser *admin.User, configLicenses []string) error {
+	var userLicenses []License
+	// request the list of user licenses
+	for _, license := range googleLicenses {
+		_, err := srv.LicenseAssignments.Get(license.productId, license.skuId, googleUser.PrimaryEmail).Do()
+		if err != nil {
+			// error code 404 - if the user does not have this license, the response has a 'not found' error
+			if err.(*googleapi.Error).Code == 404 {
+				// check if config includes given google license
+				found := false
+				for _, configLicense := range configLicenses {
+					if configLicense == license.name {
+						found = true
+						break
+					}
+				}
+				// if config includes it, but wasnt found, add it
+				if !found {
+					_, err := srv.LicenseAssignments.Insert(license.productId, license.skuId, &licensing.LicenseAssignmentInsert{UserId: googleUser.PrimaryEmail}).Do()
+					if err != nil {
+						return fmt.Errorf("unable to insert user license: %v", err)
+					}
+				}
+			} else {
+				return fmt.Errorf("unable to retrieve user license: %v", err)
+			}
+		}
+		userLicenses = append(userLicenses, license)
+	}
+
+	// check licenses to delete
+	if len(configLicenses) == 0 {
+		for _, license := range userLicenses {
+			err := srv.LicenseAssignments.Delete(license.productId, license.skuId, googleUser.PrimaryEmail).Do()
+			if err != nil {
+				return fmt.Errorf("unable to delete user license: %v", err)
+			}
+		}
+	} else {
+		for _, license := range userLicenses {
+			found := false
+			for _, configLicense := range configLicenses {
+				if license.name == configLicense {
+					found = true
+					break
+				}
+			}
+			if !found {
+				// delete
+				err := srv.LicenseAssignments.Delete(license.productId, license.skuId, googleUser.PrimaryEmail).Do()
+				if err != nil {
+					return fmt.Errorf("unable to delete user license: %v", err)
+				}
+			}
+
+		}
+
+	}
+
+	return nil
 }

@@ -28,6 +28,7 @@ type UserConfig struct {
 	RecoveryPhone  string         `yaml:"recovery_phone,omitempty"`
 	RecoveryEmail  string         `yaml:"recovery_email,omitempty"`
 	OrgUnitPath    string         `yaml:"org_unit_path,omitempty"`
+	Licenses       []string       `yaml:"licenses,omitempty"`
 	Employee       EmployeeConfig `yaml:"employee_info,omitempty"`
 	Location       LocationConfig `yaml:"location,omitempty"`
 	Address        string         `yaml:"addresses,omitempty"`
