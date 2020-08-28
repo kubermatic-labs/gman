@@ -103,7 +103,7 @@ Each user contains:
 |-----------|------|-------------|----------|
 | name  | string | name of the group |  yes   |
 | email | string | email of the group; must end with your organization's domain name |    yes |
-| description | group's description; max 300 characters |
+| description | string | group's description; max 300 characters |
 |  who_can_contact_owner  | string | permissions to view contact owner of the group; for possible values see below |  yes |
 |  who_can_view_members  | string | permissions to view group messages; for possible values see below |  yes |
 |  who_can_approve_members  | string | permissions to approve members who ask to join groups; for possible values see below |  yes |

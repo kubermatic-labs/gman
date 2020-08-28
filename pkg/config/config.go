@@ -168,6 +168,22 @@ func (c *Config) Validate() []error {
 			}
 		}
 
+		permittedLicenses := []string{"GSuiteEnterprise", "GSuiteBusiness", "GSuiteBasic", "GSuiteEssentials", "GSuiteLite", "GoogleAppsMessageSecurity", "GSuiteEducation", "GSuiteEducationStudent", "GoogleDrive20GB", "GoogleDrive50GB", "GoogleDrive200GB", "GoogleDrive400GB", "GoogleDrive1TB", "GoogleDrive2TB", "GoogleDrive4TB", "GoogleDrive8TB", "GoogleDrive16TB", "GoogleVault", "GoogleVaultFormerEmployee", "CloudIdentity", "CloudIdentityPremium", "GoogleVoiceStarter", "GoogleVoiceStandard", "GoogleVoicePremier"}
+		if len(user.Licenses) > 0 {
+			for _, license := range user.Licenses {
+				found := false
+				for _, permLicense := range permittedLicenses {
+					if license == permLicense {
+						found = true
+						//allTheErrors = append(allTheErrors, fmt.Errorf("alias email is not a valid email-address (user: %s)", user.PrimaryEmail))
+					}
+				}
+				if !found {
+					allTheErrors = append(allTheErrors, fmt.Errorf("wrong value specified for the user license (user: %s, license: %s)", user.PrimaryEmail, license))
+				}
+			}
+		}
+
 		userEmails = append(userEmails, user.PrimaryEmail)
 	}
 
