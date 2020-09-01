@@ -19,7 +19,7 @@ import (
 
 // NewDirectoryService() creates a client for communicating with Google Directory API,
 // returns a service object authorized to perform actions in Gsuite.
-func NewDirectoryService(clientSecretFile string, impersonatedUserEmail string) (*admin.Service, error) {
+func NewDirectoryService(clientSecretFile string, impersonatedUserEmail string, scopes ...string) (*admin.Service, error) {
 	ctx := context.Background()
 
 	jsonCredentials, err := ioutil.ReadFile(clientSecretFile)
@@ -27,7 +27,7 @@ func NewDirectoryService(clientSecretFile string, impersonatedUserEmail string) 
 		return nil, fmt.Errorf("unable to read json credentials (clientSecretFile): %v", err)
 	}
 
-	config, err := google.JWTConfigFromJSON(jsonCredentials, admin.AdminDirectoryUserScope, admin.AdminDirectoryGroupScope, admin.AdminDirectoryGroupMemberScope, admin.AdminDirectoryOrgunitScope, admin.AdminDirectoryResourceCalendarScope)
+	config, err := google.JWTConfigFromJSON(jsonCredentials, scopes...)
 	if err != nil {
 		return nil, fmt.Errorf("unable to process credentials: %v", err)
 	}

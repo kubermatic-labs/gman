@@ -9,9 +9,9 @@ import (
 
 	"github.com/kubermatic-labs/gman/pkg/config"
 	"github.com/kubermatic-labs/gman/pkg/export"
-	"github.com/kubermatic-labs/gman/pkg/sync"
-
 	"github.com/kubermatic-labs/gman/pkg/glib"
+	"github.com/kubermatic-labs/gman/pkg/sync"
+	admin "google.golang.org/api/admin/directory/v1"
 )
 
 // These variables are set by goreleaser during build time.
@@ -98,9 +98,17 @@ func main() {
 		}
 	}
 
-	srv, err := glib.NewDirectoryService(clientSecretFile, impersonatedUserEmail)
-	if err != nil {
-		log.Fatalf("⚠ Failed to create GSuite Directory API client: %v", err)
+	var srv *admin.Service
+	if exportMode || !confirm {
+		srv, err = glib.NewDirectoryService(clientSecretFile, impersonatedUserEmail, admin.AdminDirectoryUserReadonlyScope, admin.AdminDirectoryGroupReadonlyScope, admin.AdminDirectoryOrgunitReadonlyScope, admin.AdminDirectoryGroupMemberReadonlyScope, admin.AdminDirectoryResourceCalendarReadonlyScope)
+		if err != nil {
+			log.Fatalf("⚠ Failed to create GSuite Directory API client: %v", err)
+		}
+	} else {
+		srv, err = glib.NewDirectoryService(clientSecretFile, impersonatedUserEmail, admin.AdminDirectoryUserScope, admin.AdminDirectoryGroupScope, admin.AdminDirectoryGroupMemberScope, admin.AdminDirectoryOrgunitScope, admin.AdminDirectoryResourceCalendarScope)
+		if err != nil {
+			log.Fatalf("⚠ Failed to create GSuite Directory API client: %v", err)
+		}
 	}
 
 	grSrv, err := glib.NewGroupsService(clientSecretFile, impersonatedUserEmail)

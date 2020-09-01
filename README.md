@@ -49,11 +49,17 @@ To authorize and to perform the operations on behalf of *Gman* a Service Account
 After creating one, it needs to be registered as an API client and have enabled this OAuth scopes: 
 
 * https://www.googleapis.com/auth/admin.directory.user
+* https://www.googleapis.com/auth/admin.directory.user.readonly
 * https://www.googleapis.com/auth/admin.directory.orgunit
+* https://www.googleapis.com/auth/admin.directory.orgunit.readonly
 * https://www.googleapis.com/auth/admin.directory.group
+* https://www.googleapis.com/auth/admin.directory.group.readonly
 * https://www.googleapis.com/auth/admin.directory.group.member
-* https://www.googleapis.com/auth/apps.groups.settings
+* https://www.googleapis.com/auth/admin.directory.group.member.readonly
 * https://www.googleapis.com/auth/admin.directory.resource.calendar
+* https://www.googleapis.com/auth/admin.directory.resource.calendar.readonly
+* https://www.googleapis.com/auth/apps.groups.settings
+* https://www.googleapis.com/auth/apps.licensing
   
 Those scopes can be added in Admin console under *Security -> API Controls -> Domain-wide Delegation*.
 
