@@ -298,22 +298,28 @@ func createGSuiteUserFromConfig(srv admin.Service, user *config.UserConfig) *adm
 				Description: user.Employee.Type,
 			},
 		}
-		googleUser.Organizations = uOrg
-		rel := []admin.UserRelation{
-			{
-				Value: user.Employee.ManagerEmail,
-				Type:  "manager",
-			},
-		}
-		googleUser.Relations = rel
 
-		ids := []admin.UserExternalId{
-			{
-				Value: user.Employee.EmployeeID,
-				Type:  "organization",
-			},
+		googleUser.Organizations = uOrg
+
+		if user.Employee.ManagerEmail != "" {
+			rel := []admin.UserRelation{
+				{
+					Value: user.Employee.ManagerEmail,
+					Type:  "manager",
+				},
+			}
+			googleUser.Relations = rel
 		}
-		googleUser.ExternalIds = ids
+
+		if user.Employee.EmployeeID != "" {
+			ids := []admin.UserExternalId{
+				{
+					Value: user.Employee.EmployeeID,
+					Type:  "organization",
+				},
+			}
+			googleUser.ExternalIds = ids
+		}
 
 	}
 
@@ -371,16 +377,24 @@ func CreateConfigUserFromGSuite(googleUser *admin.User, userLicenses []License) 
 
 	if googleUser.Organizations != nil {
 		for _, org := range googleUser.Organizations.([]interface{}) {
-			configUser.Employee.Department = fmt.Sprint(org.(map[string]interface{})["department"])
-			configUser.Employee.JobTitle = fmt.Sprint(org.(map[string]interface{})["title"])
-			configUser.Employee.Type = fmt.Sprint(org.(map[string]interface{})["description"])
-			configUser.Employee.CostCenter = fmt.Sprint(org.(map[string]interface{})["costCenter"])
+			if org.(map[string]interface{})["department"] != nil {
+				configUser.Employee.Department = fmt.Sprint(org.(map[string]interface{})["department"])
+			}
+			if org.(map[string]interface{})["title"] != nil {
+				configUser.Employee.JobTitle = fmt.Sprint(org.(map[string]interface{})["title"])
+			}
+			if org.(map[string]interface{})["description"] != nil {
+				configUser.Employee.Type = fmt.Sprint(org.(map[string]interface{})["description"])
+			}
+			if org.(map[string]interface{})["costCenter"] != nil {
+				configUser.Employee.CostCenter = fmt.Sprint(org.(map[string]interface{})["costCenter"])
+			}
 		}
 	}
 
 	if googleUser.Relations != nil {
 		for _, rel := range googleUser.Relations.([]interface{}) {
-			if rel.(map[string]interface{})["type"] == "manager" {
+			if rel.(map[string]interface{})["type"] == "manager" && rel.(map[string]interface{})["value"] != nil {
 				configUser.Employee.ManagerEmail = fmt.Sprint(rel.(map[string]interface{})["value"])
 			}
 		}
@@ -388,11 +402,18 @@ func CreateConfigUserFromGSuite(googleUser *admin.User, userLicenses []License) 
 
 	if googleUser.Locations != nil {
 		for _, loc := range googleUser.Locations.([]interface{}) {
-			configUser.Location.Building = fmt.Sprint(loc.(map[string]interface{})["buildingId"])
-			configUser.Location.Floor = fmt.Sprint(loc.(map[string]interface{})["floorName"])
-			configUser.Location.FloorSection = fmt.Sprint(loc.(map[string]interface{})["floorSection"])
+			if loc.(map[string]interface{})["buildingId"] != nil {
+				configUser.Location.Building = fmt.Sprint(loc.(map[string]interface{})["buildingId"])
+			}
+			if loc.(map[string]interface{})["floorName"] != nil {
+				configUser.Location.Floor = fmt.Sprint(loc.(map[string]interface{})["floorName"])
+			}
+			if loc.(map[string]interface{})["floorSection"] != nil {
+				configUser.Location.FloorSection = fmt.Sprint(loc.(map[string]interface{})["floorSection"])
+			}
 		}
 	}
+
 	if googleUser.Addresses != nil {
 		for _, addr := range googleUser.Addresses.([]interface{}) {
 			if addr.(map[string]interface{})["type"] == "home" {
@@ -709,18 +730,20 @@ func HandleUserLicenses(srv licensing.Service, googleUser *admin.User, configLic
 						break
 					}
 				}
-				// if config includes it, but wasnt found, add it
-				if !found {
+				// if config includes it (found in config), add it
+				if found == true {
 					_, err := srv.LicenseAssignments.Insert(license.productId, license.skuId, &licensing.LicenseAssignmentInsert{UserId: googleUser.PrimaryEmail}).Do()
 					if err != nil {
 						return fmt.Errorf("unable to insert user license: %v", err)
 					}
 				}
 			} else {
+				// license exists in gsuite
 				return fmt.Errorf("unable to retrieve user license: %v", err)
 			}
+		} else {
+			userLicenses = append(userLicenses, license)
 		}
-		userLicenses = append(userLicenses, license)
 	}
 
 	// check licenses to delete

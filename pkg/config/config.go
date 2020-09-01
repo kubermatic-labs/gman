@@ -175,7 +175,6 @@ func (c *Config) Validate() []error {
 				for _, permLicense := range permittedLicenses {
 					if license == permLicense {
 						found = true
-						//allTheErrors = append(allTheErrors, fmt.Errorf("alias email is not a valid email-address (user: %s)", user.PrimaryEmail))
 					}
 				}
 				if !found {

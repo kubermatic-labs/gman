@@ -16,7 +16,7 @@ import (
 func SyncConfiguration(ctx context.Context, cfg *config.Config, clientService *admin.Service, groupService *groupssettings.Service, licensingService *licensing.Service, confirm bool) error {
 
 	if err := SyncOrgUnits(ctx, clientService, cfg, confirm); err != nil {
-		return fmt.Errorf("failed to sync users: %v", err)
+		return fmt.Errorf("failed to sync org units: %v", err)
 	}
 	if err := SyncUsers(ctx, clientService, licensingService, cfg, confirm); err != nil {
 		return fmt.Errorf("failed to sync users: %v", err)
