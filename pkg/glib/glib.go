@@ -706,8 +706,9 @@ func GetUserLicenses(srv *licensing.Service, user string) ([]License, error) {
 			} else {
 				return nil, fmt.Errorf("unable to retrieve license in domain: %v", err)
 			}
+		} else {
+			userLicenses = append(userLicenses, license)
 		}
-		userLicenses = append(userLicenses, license)
 	}
 
 	return userLicenses, nil
