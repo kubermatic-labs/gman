@@ -87,11 +87,12 @@ Gman supports the following names as the equivalents of the Google SKUs:
 | Google Drive storage 16 TB | GoogleDrive16TB |
 | Google Vault | GoogleVault |
 | Google Vault - Former Employee | GoogleVaultFormerEmployee |
-| Cloud Identity | CloudIdentity |
 | Cloud Identity Premium | CloudIdentityPremium |
 | Google Voice Starter | GoogleVoiceStarter |
 | Google Voice Standard | GoogleVoiceStandard |
 | Google Voice Premier | GoogleVoicePremier |
+
+Remark: *Cloud Identity Free Edition* is a site-wide SKU (applied at customer level), hence it cannot be managed by Gman as it is not assigned to individual users. 
 
 ## Groups
 
