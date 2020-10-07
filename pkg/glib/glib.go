@@ -702,7 +702,7 @@ func GetUserLicenses(srv *licensing.Service, user string) ([]License, error) {
 		if err != nil {
 			if err.(*googleapi.Error).Code == 404 {
 				// license doesnt exists
-				break
+				continue
 			} else {
 				return nil, fmt.Errorf("unable to retrieve license in domain: %v", err)
 			}
@@ -710,7 +710,6 @@ func GetUserLicenses(srv *licensing.Service, user string) ([]License, error) {
 			userLicenses = append(userLicenses, license)
 		}
 	}
-
 	return userLicenses, nil
 }
 

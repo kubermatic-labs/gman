@@ -105,11 +105,6 @@ var googleLicenses = []License{
 		name:      "GoogleVaultFormerEmployee",
 	},
 	{
-		productId: "101001", // Cloud Identity
-		skuId:     "1010010001",
-		name:      "CloudIdentity",
-	},
-	{
 		productId: "101005", // Cloud Identity Premium
 		skuId:     "1010050001",
 		name:      "CloudIdentityPremium",

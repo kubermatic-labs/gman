@@ -35,12 +35,12 @@ The official releases can be found [here](https://github.com/kubermatic-labs/gma
 
 ### Basics: Admin & Directory API 
 
-The Directory API is intended for management of devices, groups, group members, organizational units and users. 
+The **Directory API** is intended for management of devices, groups, group members, organizational units and users. 
 
 To be able to use it, please make sure that you have access to an admin account in the Admin Console and you have set up your API. 
 For more detailed information, see [the official Google documentation](https://developers.google.com/admin-sdk/directory/v1/guides/prerequisites).
 
-Moreover, to access the extended settings of the groups, the Groups Settings API must be enabled as well (see [the official documentation](https://developers.google.com/admin-sdk/groups-settings/prerequisites#prereqs-enableapis)).
+Moreover, to access the extended settings of the groups, the **Groups Settings API** must be enabled (see [the official documentation](https://developers.google.com/admin-sdk/groups-settings/prerequisites#prereqs-enableapis)). To manage user licenses the **Enterprise License Manager API** has to be activated too (see [the official documentation](https://developers.google.com/admin-sdk/licensing/v1/how-tos/prerequisites#api-setup-steps)).
 
 
 ### Service account 
