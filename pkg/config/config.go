@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/kubermatic-labs/gman/pkg/data"
 	"github.com/kubermatic-labs/gman/pkg/util"
 	"gopkg.in/yaml.v3"
 )
@@ -168,12 +169,11 @@ func (c *Config) Validate() []error {
 			}
 		}
 
-		permittedLicenses := []string{"GSuiteEnterprise", "GSuiteBusiness", "GSuiteBasic", "GSuiteEssentials", "GSuiteLite", "GoogleAppsMessageSecurity", "GSuiteEducation", "GSuiteEducationStudent", "GoogleDrive20GB", "GoogleDrive50GB", "GoogleDrive200GB", "GoogleDrive400GB", "GoogleDrive1TB", "GoogleDrive2TB", "GoogleDrive4TB", "GoogleDrive8TB", "GoogleDrive16TB", "GoogleVault", "GoogleVaultFormerEmployee", "CloudIdentity", "CloudIdentityPremium", "GoogleVoiceStarter", "GoogleVoiceStandard", "GoogleVoicePremier"}
 		if len(user.Licenses) > 0 {
 			for _, license := range user.Licenses {
 				found := false
-				for _, permLicense := range permittedLicenses {
-					if license == permLicense {
+				for _, permLicense := range data.GoogleLicenses {
+					if license == permLicense.Name {
 						found = true
 					}
 				}

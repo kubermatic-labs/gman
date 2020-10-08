@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/kubermatic-labs/gman/pkg/config"
+	"github.com/kubermatic-labs/gman/pkg/data"
 	password "github.com/sethvargo/go-password/password"
 	"golang.org/x/oauth2/google"
 	admin "google.golang.org/api/admin/directory/v1"
@@ -341,7 +342,7 @@ func createGSuiteUserFromConfig(srv admin.Service, user *config.UserConfig) *adm
 }
 
 // createConfigUserFromGSuite converts a (GSuite) admin.User to ConfigUser
-func CreateConfigUserFromGSuite(googleUser *admin.User, userLicenses []License) config.UserConfig {
+func CreateConfigUserFromGSuite(googleUser *admin.User, userLicenses []data.License) config.UserConfig {
 	// get emails
 	primaryEmail, secondaryEmail := GetUserEmails(googleUser)
 
@@ -363,68 +364,89 @@ func CreateConfigUserFromGSuite(googleUser *admin.User, userLicenses []License) 
 
 	if googleUser.Phones != nil {
 		for _, phone := range googleUser.Phones.([]interface{}) {
-			configUser.Phones = append(configUser.Phones, fmt.Sprint(phone.(map[string]interface{})["value"]))
+			if phoneMap, ok := phone.(map[string]interface{}); ok {
+				if phoneVal, exists := phoneMap["value"]; exists {
+					configUser.Phones = append(configUser.Phones, fmt.Sprint(phoneVal))
+				}
+			}
 		}
 	}
 
 	if googleUser.ExternalIds != nil {
 		for _, id := range googleUser.ExternalIds.([]interface{}) {
-			if id.(map[string]interface{})["type"] == "organization" {
-				configUser.Employee.EmployeeID = fmt.Sprint(id.(map[string]interface{})["value"])
+			if idMap, ok := id.(map[string]interface{}); ok {
+				if idType := idMap["type"]; idType == "organization" {
+					if orgId, exists := idMap["value"]; exists {
+						configUser.Employee.EmployeeID = fmt.Sprint(orgId)
+					}
+				}
 			}
 		}
 	}
 
 	if googleUser.Organizations != nil {
 		for _, org := range googleUser.Organizations.([]interface{}) {
-			if org.(map[string]interface{})["department"] != nil {
-				configUser.Employee.Department = fmt.Sprint(org.(map[string]interface{})["department"])
-			}
-			if org.(map[string]interface{})["title"] != nil {
-				configUser.Employee.JobTitle = fmt.Sprint(org.(map[string]interface{})["title"])
-			}
-			if org.(map[string]interface{})["description"] != nil {
-				configUser.Employee.Type = fmt.Sprint(org.(map[string]interface{})["description"])
-			}
-			if org.(map[string]interface{})["costCenter"] != nil {
-				configUser.Employee.CostCenter = fmt.Sprint(org.(map[string]interface{})["costCenter"])
+			if orgMap, ok := org.(map[string]interface{}); ok {
+				if department, exists := orgMap["department"]; exists {
+					configUser.Employee.JobTitle = fmt.Sprint(department)
+				}
+				if title, exists := orgMap["title"]; exists {
+					configUser.Employee.JobTitle = fmt.Sprint(title)
+				}
+				if description, exists := orgMap["description"]; exists {
+					configUser.Employee.Type = fmt.Sprint(description)
+				}
+				if costCenter, exists := orgMap["costCenter"]; exists {
+					configUser.Employee.CostCenter = fmt.Sprint(costCenter)
+				}
 			}
 		}
 	}
 
 	if googleUser.Relations != nil {
 		for _, rel := range googleUser.Relations.([]interface{}) {
-			if rel.(map[string]interface{})["type"] == "manager" && rel.(map[string]interface{})["value"] != nil {
-				configUser.Employee.ManagerEmail = fmt.Sprint(rel.(map[string]interface{})["value"])
+			if relMap, ok := rel.(map[string]interface{}); ok {
+				if relType := relMap["type"]; relType == "manager" {
+					if managerEmail, exists := relMap["value"]; exists {
+						configUser.Employee.ManagerEmail = fmt.Sprint(managerEmail)
+					}
+				}
 			}
 		}
 	}
 
 	if googleUser.Locations != nil {
 		for _, loc := range googleUser.Locations.([]interface{}) {
-			if loc.(map[string]interface{})["buildingId"] != nil {
-				configUser.Location.Building = fmt.Sprint(loc.(map[string]interface{})["buildingId"])
-			}
-			if loc.(map[string]interface{})["floorName"] != nil {
-				configUser.Location.Floor = fmt.Sprint(loc.(map[string]interface{})["floorName"])
-			}
-			if loc.(map[string]interface{})["floorSection"] != nil {
-				configUser.Location.FloorSection = fmt.Sprint(loc.(map[string]interface{})["floorSection"])
+			if locMap, ok := loc.(map[string]interface{}); ok {
+				if buildingId, exists := locMap["buildingId"]; exists {
+					configUser.Location.Building = fmt.Sprint(buildingId)
+				}
+				if floorName, exists := locMap["floorName"]; exists {
+					configUser.Location.Floor = fmt.Sprint(floorName)
+				}
+				if floorSection, exists := locMap["floorSection"]; exists {
+					configUser.Location.FloorSection = fmt.Sprint(floorSection)
+				}
 			}
 		}
 	}
 
 	if googleUser.Addresses != nil {
 		for _, addr := range googleUser.Addresses.([]interface{}) {
-			if addr.(map[string]interface{})["type"] == "home" {
-				configUser.Address = fmt.Sprint(addr.(map[string]interface{})["formatted"])
+
+			if addrMap, ok := addr.(map[string]interface{}); ok {
+				if addrType := addrMap["type"]; addrType == "home" {
+					if address, exists := addrMap["formatted"]; exists {
+						configUser.Address = fmt.Sprint(address)
+					}
+				}
 			}
 		}
 	}
 
 	if len(userLicenses) > 0 {
 		for _, userLicense := range userLicenses {
-			configUser.Licenses = append(configUser.Licenses, userLicense.name)
+			configUser.Licenses = append(configUser.Licenses, userLicense.Name)
 		}
 	}
 
@@ -695,10 +717,10 @@ func createGSuiteOUFromConfig(ou *config.OrgUnitConfig) *admin.OrgUnit {
 //----------------------------------------//
 
 // GetUserLicense returns a list of licenses of a user
-func GetUserLicenses(srv *licensing.Service, user string) ([]License, error) {
-	var userLicenses []License
-	for _, license := range googleLicenses {
-		_, err := srv.LicenseAssignments.Get(license.productId, license.skuId, user).Do()
+func GetUserLicenses(srv *licensing.Service, user string) ([]data.License, error) {
+	var userLicenses []data.License
+	for _, license := range data.GoogleLicenses {
+		_, err := srv.LicenseAssignments.Get(license.ProductId, license.SkuId, user).Do()
 		if err != nil {
 			if err.(*googleapi.Error).Code == 404 {
 				// license doesnt exists
@@ -715,24 +737,24 @@ func GetUserLicenses(srv *licensing.Service, user string) ([]License, error) {
 
 // HandleUserLicenses provides logic for creating/deleting/updating licenses according to config file
 func HandleUserLicenses(srv licensing.Service, googleUser *admin.User, configLicenses []string) error {
-	var userLicenses []License
+	var userLicenses []data.License
 	// request the list of user licenses
-	for _, license := range googleLicenses {
-		_, err := srv.LicenseAssignments.Get(license.productId, license.skuId, googleUser.PrimaryEmail).Do()
+	for _, license := range data.GoogleLicenses {
+		_, err := srv.LicenseAssignments.Get(license.ProductId, license.SkuId, googleUser.PrimaryEmail).Do()
 		if err != nil {
 			// error code 404 - if the user does not have this license, the response has a 'not found' error
 			if err.(*googleapi.Error).Code == 404 {
 				// check if config includes given google license
 				found := false
 				for _, configLicense := range configLicenses {
-					if configLicense == license.name {
+					if configLicense == license.Name {
 						found = true
 						break
 					}
 				}
 				// if config includes it (found in config), add it
 				if found == true {
-					_, err := srv.LicenseAssignments.Insert(license.productId, license.skuId, &licensing.LicenseAssignmentInsert{UserId: googleUser.PrimaryEmail}).Do()
+					_, err := srv.LicenseAssignments.Insert(license.ProductId, license.SkuId, &licensing.LicenseAssignmentInsert{UserId: googleUser.PrimaryEmail}).Do()
 					if err != nil {
 						return fmt.Errorf("unable to insert user license: %v", err)
 					}
@@ -749,7 +771,7 @@ func HandleUserLicenses(srv licensing.Service, googleUser *admin.User, configLic
 	// check licenses to delete
 	if len(configLicenses) == 0 {
 		for _, license := range userLicenses {
-			err := srv.LicenseAssignments.Delete(license.productId, license.skuId, googleUser.PrimaryEmail).Do()
+			err := srv.LicenseAssignments.Delete(license.ProductId, license.SkuId, googleUser.PrimaryEmail).Do()
 			if err != nil {
 				return fmt.Errorf("unable to delete user license: %v", err)
 			}
@@ -758,14 +780,14 @@ func HandleUserLicenses(srv licensing.Service, googleUser *admin.User, configLic
 		for _, license := range userLicenses {
 			found := false
 			for _, configLicense := range configLicenses {
-				if license.name == configLicense {
+				if license.Name == configLicense {
 					found = true
 					break
 				}
 			}
 			if !found {
 				// delete
-				err := srv.LicenseAssignments.Delete(license.productId, license.skuId, googleUser.PrimaryEmail).Do()
+				err := srv.LicenseAssignments.Delete(license.ProductId, license.SkuId, googleUser.PrimaryEmail).Do()
 				if err != nil {
 					return fmt.Errorf("unable to delete user license: %v", err)
 				}
