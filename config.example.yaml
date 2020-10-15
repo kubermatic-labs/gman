@@ -68,7 +68,7 @@ groups:
     # - ALL_MEMBERS_CAN_CONTACT
     # - ANYONE_CAN_CONTACT
     who_can_contact_owner: ALL_MEMBERS_CAN_CONTACT
-    # Permissions to view group messages. Possible values are:
+    # Permissions to view group members. Possible values are:
     # - ANYONE_CAN_VIEW: Any Internet user 
     # - ALL_IN_DOMAIN_CAN_VIEW: Anyone in your account
     # - ALL_MEMBERS_CAN_VIEW: All group members 
@@ -89,8 +89,8 @@ groups:
     # - ANYONE_CAN_POST: Any Internet user who can access your Google Groups service 
     who_can_post: ALL_MEMBERS_CAN_POST
     # Permission to join group. Possible values are:
-    # - ANYONE_CAN_JOIN: Anyone in the account domain 
-    # - ALL_IN_DOMAIN_CAN_JOIN: Any Internet user who can access your Google Groups service 
+    # - ALL_IN_DOMAIN_CAN_JOIN: Anyone in the account domain 
+    # - ANYONE_CAN_JOIN: Any Internet user who can access your Google Groups service 
     # - INVITED_CAN_JOIN: Candidates for membership can be invited to join
     # - CAN_REQUEST_TO_JOIN: Non members can request an invitation to join
     who_can_join: CAN_REQUEST_TO_JOIN

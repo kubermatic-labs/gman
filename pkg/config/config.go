@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/kubermatic-labs/gman/pkg/data"
 	"github.com/kubermatic-labs/gman/pkg/util"
 	"gopkg.in/yaml.v3"
 )
@@ -28,6 +29,7 @@ type UserConfig struct {
 	RecoveryPhone  string         `yaml:"recovery_phone,omitempty"`
 	RecoveryEmail  string         `yaml:"recovery_email,omitempty"`
 	OrgUnitPath    string         `yaml:"org_unit_path,omitempty"`
+	Licenses       []string       `yaml:"licenses,omitempty"`
 	Employee       EmployeeConfig `yaml:"employee_info,omitempty"`
 	Location       LocationConfig `yaml:"location,omitempty"`
 	Address        string         `yaml:"addresses,omitempty"`
@@ -164,6 +166,20 @@ func (c *Config) Validate() []error {
 		if user.RecoveryPhone != "" {
 			if re164.MatchString(user.RecoveryPhone) == false {
 				allTheErrors = append(allTheErrors, fmt.Errorf("invalid format of recovery phone (user: %s). The phone number must be in the E.164 format, starting with the plus sign (+). Example: +16506661212.", user.PrimaryEmail))
+			}
+		}
+
+		if len(user.Licenses) > 0 {
+			for _, license := range user.Licenses {
+				found := false
+				for _, permLicense := range data.GoogleLicenses {
+					if license == permLicense.Name {
+						found = true
+					}
+				}
+				if !found {
+					allTheErrors = append(allTheErrors, fmt.Errorf("wrong value specified for the user license (user: %s, license: %s)", user.PrimaryEmail, license))
+				}
 			}
 		}
 

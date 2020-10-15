@@ -35,12 +35,12 @@ The official releases can be found [here](https://github.com/kubermatic-labs/gma
 
 ### Basics: Admin & Directory API 
 
-The Directory API is intended for management of devices, groups, group members, organizational units and users. 
+The **Directory API** is intended for management of devices, groups, group members, organizational units and users. 
 
 To be able to use it, please make sure that you have access to an admin account in the Admin Console and you have set up your API. 
 For more detailed information, see [the official Google documentation](https://developers.google.com/admin-sdk/directory/v1/guides/prerequisites).
 
-Moreover, to access the extended settings of the groups, the Groups Settings API must be enabled as well (see [the official documentation](https://developers.google.com/admin-sdk/groups-settings/prerequisites#prereqs-enableapis)).
+Moreover, to access the extended settings of the groups, the **Groups Settings API** must be enabled (see [the official documentation](https://developers.google.com/admin-sdk/groups-settings/prerequisites#prereqs-enableapis)). To manage user licenses the **Enterprise License Manager API** has to be activated too (see [the official documentation](https://developers.google.com/admin-sdk/licensing/v1/how-tos/prerequisites#api-setup-steps)).
 
 
 ### Service account 
@@ -49,11 +49,17 @@ To authorize and to perform the operations on behalf of *Gman* a Service Account
 After creating one, it needs to be registered as an API client and have enabled this OAuth scopes: 
 
 * https://www.googleapis.com/auth/admin.directory.user
+* https://www.googleapis.com/auth/admin.directory.user.readonly
 * https://www.googleapis.com/auth/admin.directory.orgunit
+* https://www.googleapis.com/auth/admin.directory.orgunit.readonly
 * https://www.googleapis.com/auth/admin.directory.group
+* https://www.googleapis.com/auth/admin.directory.group.readonly
 * https://www.googleapis.com/auth/admin.directory.group.member
-* https://www.googleapis.com/auth/apps.groups.settings
+* https://www.googleapis.com/auth/admin.directory.group.member.readonly
 * https://www.googleapis.com/auth/admin.directory.resource.calendar
+* https://www.googleapis.com/auth/admin.directory.resource.calendar.readonly
+* https://www.googleapis.com/auth/apps.groups.settings
+* https://www.googleapis.com/auth/apps.licensing
   
 Those scopes can be added in Admin console under *Security -> API Controls -> Domain-wide Delegation*.
 
@@ -78,7 +84,7 @@ The impersonated email must be specified in *Gman*. There are two ways to do so:
 
 ### Config YAML 
 
-All configuration of the users happens in a YAML file. See the annotated [config.example.yaml](/config.example.yaml) for more information, available parameters and example usage.
+All configuration of the users happens in a YAML file. See the [configuration documentation](/Configuration.md) for more information, available parameters and values, or refer to the annotated [config.example.yaml](/config.example.yaml) for the example usage.
 
 This file must be created beforehand with the minimal configuration, i.e. organization name specified. 
 In order to get the initial config of the users that are already in place in your Organizaiton, run *Gman* with `-export` flag specified, so the depicted on your side YAML can be populated. 

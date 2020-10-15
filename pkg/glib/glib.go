@@ -8,16 +8,19 @@ import (
 	"strconv"
 
 	"github.com/kubermatic-labs/gman/pkg/config"
+	"github.com/kubermatic-labs/gman/pkg/data"
 	password "github.com/sethvargo/go-password/password"
 	"golang.org/x/oauth2/google"
 	admin "google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/googleapi"
 	groupssettings "google.golang.org/api/groupssettings/v1"
+	"google.golang.org/api/licensing/v1"
 	"google.golang.org/api/option"
 )
 
 // NewDirectoryService() creates a client for communicating with Google Directory API,
 // returns a service object authorized to perform actions in Gsuite.
-func NewDirectoryService(clientSecretFile string, impersonatedUserEmail string) (*admin.Service, error) {
+func NewDirectoryService(clientSecretFile string, impersonatedUserEmail string, scopes ...string) (*admin.Service, error) {
 	ctx := context.Background()
 
 	jsonCredentials, err := ioutil.ReadFile(clientSecretFile)
@@ -25,7 +28,7 @@ func NewDirectoryService(clientSecretFile string, impersonatedUserEmail string) 
 		return nil, fmt.Errorf("unable to read json credentials (clientSecretFile): %v", err)
 	}
 
-	config, err := google.JWTConfigFromJSON(jsonCredentials, admin.AdminDirectoryUserScope, admin.AdminDirectoryGroupScope, admin.AdminDirectoryGroupMemberScope, admin.AdminDirectoryOrgunitScope, admin.AdminDirectoryResourceCalendarScope)
+	config, err := google.JWTConfigFromJSON(jsonCredentials, scopes...)
 	if err != nil {
 		return nil, fmt.Errorf("unable to process credentials: %v", err)
 	}
@@ -65,6 +68,31 @@ func NewGroupsService(clientSecretFile string, impersonatedUserEmail string) (*g
 	return srv, nil
 }
 
+// NewLicensingService() creates a client for communicating with Google Licensing API,
+// returns a service object authorized to perform actions in Gsuite.
+func NewLicensingService(clientSecretFile string, impersonatedUserEmail string) (*licensing.Service, error) {
+	ctx := context.Background()
+
+	jsonCredentials, err := ioutil.ReadFile(clientSecretFile)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read json credentials (clientSecretFile): %v", err)
+	}
+
+	config, err := google.JWTConfigFromJSON(jsonCredentials, licensing.AppsLicensingScope)
+	if err != nil {
+		return nil, fmt.Errorf("unable to process credentials: %v", err)
+	}
+	config.Subject = impersonatedUserEmail
+
+	ts := config.TokenSource(ctx)
+
+	srv, err := licensing.NewService(ctx, option.WithTokenSource(ts))
+	if err != nil {
+		return nil, fmt.Errorf("unable to create a new Licensing Service: %v", err)
+	}
+	return srv, nil
+}
+
 //----------------------------------------//
 //   User handling                        //
 //----------------------------------------//
@@ -94,7 +122,7 @@ func GetUserEmails(user *admin.User) (string, string) {
 }
 
 // CreateUser creates a new user in GSuite via their API
-func CreateUser(srv admin.Service, user *config.UserConfig) error {
+func CreateUser(srv admin.Service, licensingSrv licensing.Service, user *config.UserConfig) error {
 	// generate a rand password
 	pass, err := password.Generate(20, 5, 5, false, false)
 	if err != nil {
@@ -109,7 +137,15 @@ func CreateUser(srv admin.Service, user *config.UserConfig) error {
 		return fmt.Errorf("unable to insert a user: %v", err)
 	}
 
-	HandleUserAliases(srv, newUser, user.Aliases)
+	err = HandleUserAliases(srv, newUser, user.Aliases)
+	if err != nil {
+		return err
+	}
+
+	err = HandleUserLicenses(licensingSrv, newUser, user.Licenses)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -124,18 +160,27 @@ func DeleteUser(srv admin.Service, user *admin.User) error {
 }
 
 // UpdateUser updates the remote user with config
-func UpdateUser(srv admin.Service, user *config.UserConfig) error {
+func UpdateUser(srv admin.Service, licensingSrv licensing.Service, user *config.UserConfig) error {
 	updatedUser := createGSuiteUserFromConfig(srv, user)
 	_, err := srv.Users.Update(user.PrimaryEmail, updatedUser).Do()
 	if err != nil {
 		return fmt.Errorf("unable to update a user %s: %v", user.PrimaryEmail, err)
 	}
 
-	HandleUserAliases(srv, updatedUser, user.Aliases)
+	err = HandleUserAliases(srv, updatedUser, user.Aliases)
+	if err != nil {
+		return err
+	}
+
+	err = HandleUserLicenses(licensingSrv, updatedUser, user.Licenses)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
+// HandleUserAliases provides logic for creating/deleting/updating aiases
 func HandleUserAliases(srv admin.Service, googleUser *admin.User, configAliases []string) error {
 	request, err := srv.Users.Aliases.List(googleUser.PrimaryEmail).Do()
 	if err != nil {
@@ -254,22 +299,28 @@ func createGSuiteUserFromConfig(srv admin.Service, user *config.UserConfig) *adm
 				Description: user.Employee.Type,
 			},
 		}
-		googleUser.Organizations = uOrg
-		rel := []admin.UserRelation{
-			{
-				Value: user.Employee.ManagerEmail,
-				Type:  "manager",
-			},
-		}
-		googleUser.Relations = rel
 
-		ids := []admin.UserExternalId{
-			{
-				Value: user.Employee.EmployeeID,
-				Type:  "organization",
-			},
+		googleUser.Organizations = uOrg
+
+		if user.Employee.ManagerEmail != "" {
+			rel := []admin.UserRelation{
+				{
+					Value: user.Employee.ManagerEmail,
+					Type:  "manager",
+				},
+			}
+			googleUser.Relations = rel
 		}
-		googleUser.ExternalIds = ids
+
+		if user.Employee.EmployeeID != "" {
+			ids := []admin.UserExternalId{
+				{
+					Value: user.Employee.EmployeeID,
+					Type:  "organization",
+				},
+			}
+			googleUser.ExternalIds = ids
+		}
 
 	}
 
@@ -291,7 +342,7 @@ func createGSuiteUserFromConfig(srv admin.Service, user *config.UserConfig) *adm
 }
 
 // createConfigUserFromGSuite converts a (GSuite) admin.User to ConfigUser
-func CreateConfigUserFromGSuite(googleUser *admin.User) config.UserConfig {
+func CreateConfigUserFromGSuite(googleUser *admin.User, userLicenses []data.License) config.UserConfig {
 	// get emails
 	primaryEmail, secondaryEmail := GetUserEmails(googleUser)
 
@@ -313,47 +364,89 @@ func CreateConfigUserFromGSuite(googleUser *admin.User) config.UserConfig {
 
 	if googleUser.Phones != nil {
 		for _, phone := range googleUser.Phones.([]interface{}) {
-			configUser.Phones = append(configUser.Phones, fmt.Sprint(phone.(map[string]interface{})["value"]))
+			if phoneMap, ok := phone.(map[string]interface{}); ok {
+				if phoneVal, exists := phoneMap["value"]; exists {
+					configUser.Phones = append(configUser.Phones, fmt.Sprint(phoneVal))
+				}
+			}
 		}
 	}
 
 	if googleUser.ExternalIds != nil {
 		for _, id := range googleUser.ExternalIds.([]interface{}) {
-			if id.(map[string]interface{})["type"] == "organization" {
-				configUser.Employee.EmployeeID = fmt.Sprint(id.(map[string]interface{})["value"])
+			if idMap, ok := id.(map[string]interface{}); ok {
+				if idType := idMap["type"]; idType == "organization" {
+					if orgId, exists := idMap["value"]; exists {
+						configUser.Employee.EmployeeID = fmt.Sprint(orgId)
+					}
+				}
 			}
 		}
 	}
 
 	if googleUser.Organizations != nil {
 		for _, org := range googleUser.Organizations.([]interface{}) {
-			configUser.Employee.Department = fmt.Sprint(org.(map[string]interface{})["department"])
-			configUser.Employee.JobTitle = fmt.Sprint(org.(map[string]interface{})["title"])
-			configUser.Employee.Type = fmt.Sprint(org.(map[string]interface{})["description"])
-			configUser.Employee.CostCenter = fmt.Sprint(org.(map[string]interface{})["costCenter"])
+			if orgMap, ok := org.(map[string]interface{}); ok {
+				if department, exists := orgMap["department"]; exists {
+					configUser.Employee.JobTitle = fmt.Sprint(department)
+				}
+				if title, exists := orgMap["title"]; exists {
+					configUser.Employee.JobTitle = fmt.Sprint(title)
+				}
+				if description, exists := orgMap["description"]; exists {
+					configUser.Employee.Type = fmt.Sprint(description)
+				}
+				if costCenter, exists := orgMap["costCenter"]; exists {
+					configUser.Employee.CostCenter = fmt.Sprint(costCenter)
+				}
+			}
 		}
 	}
 
 	if googleUser.Relations != nil {
 		for _, rel := range googleUser.Relations.([]interface{}) {
-			if rel.(map[string]interface{})["type"] == "manager" {
-				configUser.Employee.ManagerEmail = fmt.Sprint(rel.(map[string]interface{})["value"])
+			if relMap, ok := rel.(map[string]interface{}); ok {
+				if relType := relMap["type"]; relType == "manager" {
+					if managerEmail, exists := relMap["value"]; exists {
+						configUser.Employee.ManagerEmail = fmt.Sprint(managerEmail)
+					}
+				}
 			}
 		}
 	}
 
 	if googleUser.Locations != nil {
 		for _, loc := range googleUser.Locations.([]interface{}) {
-			configUser.Location.Building = fmt.Sprint(loc.(map[string]interface{})["buildingId"])
-			configUser.Location.Floor = fmt.Sprint(loc.(map[string]interface{})["floorName"])
-			configUser.Location.FloorSection = fmt.Sprint(loc.(map[string]interface{})["floorSection"])
+			if locMap, ok := loc.(map[string]interface{}); ok {
+				if buildingId, exists := locMap["buildingId"]; exists {
+					configUser.Location.Building = fmt.Sprint(buildingId)
+				}
+				if floorName, exists := locMap["floorName"]; exists {
+					configUser.Location.Floor = fmt.Sprint(floorName)
+				}
+				if floorSection, exists := locMap["floorSection"]; exists {
+					configUser.Location.FloorSection = fmt.Sprint(floorSection)
+				}
+			}
 		}
 	}
+
 	if googleUser.Addresses != nil {
 		for _, addr := range googleUser.Addresses.([]interface{}) {
-			if addr.(map[string]interface{})["type"] == "home" {
-				configUser.Address = fmt.Sprint(addr.(map[string]interface{})["formatted"])
+
+			if addrMap, ok := addr.(map[string]interface{}); ok {
+				if addrType := addrMap["type"]; addrType == "home" {
+					if address, exists := addrMap["formatted"]; exists {
+						configUser.Address = fmt.Sprint(address)
+					}
+				}
 			}
+		}
+	}
+
+	if len(userLicenses) > 0 {
+		for _, userLicense := range userLicenses {
+			configUser.Licenses = append(configUser.Licenses, userLicense.Name)
 		}
 	}
 
@@ -617,4 +710,92 @@ func createGSuiteOUFromConfig(ou *config.OrgUnitConfig) *admin.OrgUnit {
 	}
 
 	return googleOU
+}
+
+//----------------------------------------//
+//   Licenses handling                    //
+//----------------------------------------//
+
+// GetUserLicense returns a list of licenses of a user
+func GetUserLicenses(srv *licensing.Service, user string) ([]data.License, error) {
+	var userLicenses []data.License
+	for _, license := range data.GoogleLicenses {
+		_, err := srv.LicenseAssignments.Get(license.ProductId, license.SkuId, user).Do()
+		if err != nil {
+			if err.(*googleapi.Error).Code == 404 {
+				// license doesnt exists
+				continue
+			} else {
+				return nil, fmt.Errorf("unable to retrieve license in domain: %v", err)
+			}
+		} else {
+			userLicenses = append(userLicenses, license)
+		}
+	}
+	return userLicenses, nil
+}
+
+// HandleUserLicenses provides logic for creating/deleting/updating licenses according to config file
+func HandleUserLicenses(srv licensing.Service, googleUser *admin.User, configLicenses []string) error {
+	var userLicenses []data.License
+	// request the list of user licenses
+	for _, license := range data.GoogleLicenses {
+		_, err := srv.LicenseAssignments.Get(license.ProductId, license.SkuId, googleUser.PrimaryEmail).Do()
+		if err != nil {
+			// error code 404 - if the user does not have this license, the response has a 'not found' error
+			if err.(*googleapi.Error).Code == 404 {
+				// check if config includes given google license
+				found := false
+				for _, configLicense := range configLicenses {
+					if configLicense == license.Name {
+						found = true
+						break
+					}
+				}
+				// if config includes it (found in config), add it
+				if found == true {
+					_, err := srv.LicenseAssignments.Insert(license.ProductId, license.SkuId, &licensing.LicenseAssignmentInsert{UserId: googleUser.PrimaryEmail}).Do()
+					if err != nil {
+						return fmt.Errorf("unable to insert user license: %v", err)
+					}
+				}
+			} else {
+				// license exists in gsuite
+				return fmt.Errorf("unable to retrieve user license: %v", err)
+			}
+		} else {
+			userLicenses = append(userLicenses, license)
+		}
+	}
+
+	// check licenses to delete
+	if len(configLicenses) == 0 {
+		for _, license := range userLicenses {
+			err := srv.LicenseAssignments.Delete(license.ProductId, license.SkuId, googleUser.PrimaryEmail).Do()
+			if err != nil {
+				return fmt.Errorf("unable to delete user license: %v", err)
+			}
+		}
+	} else {
+		for _, license := range userLicenses {
+			found := false
+			for _, configLicense := range configLicenses {
+				if license.Name == configLicense {
+					found = true
+					break
+				}
+			}
+			if !found {
+				// delete
+				err := srv.LicenseAssignments.Delete(license.ProductId, license.SkuId, googleUser.PrimaryEmail).Do()
+				if err != nil {
+					return fmt.Errorf("unable to delete user license: %v", err)
+				}
+			}
+
+		}
+
+	}
+
+	return nil
 }
