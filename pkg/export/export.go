@@ -12,7 +12,7 @@ import (
 	"google.golang.org/api/licensing/v1"
 )
 
-func ExportConfiguration(ctx context.Context, organization string, clientService *admin.Service, groupService *groupssettings.Service, licensingService *licensing.Service) (*config.Config, error) {
+func ExportConfiguration(ctx context.Context, organization string, clientService *admin.Service, groupService *groupssettings.Service, licensingService *licensing.Service, throttleRequests float64) (*config.Config, error) {
 	cfg := &config.Config{
 		Organization: organization,
 	}
@@ -21,7 +21,7 @@ func ExportConfiguration(ctx context.Context, organization string, clientService
 		return cfg, fmt.Errorf("org units: %v", err)
 	}
 
-	if err := exportUsers(ctx, clientService, licensingService, cfg); err != nil {
+	if err := exportUsers(ctx, clientService, licensingService, cfg, throttleRequests); err != nil {
 		return cfg, fmt.Errorf("users: %v", err)
 	}
 
@@ -32,7 +32,7 @@ func ExportConfiguration(ctx context.Context, organization string, clientService
 	return cfg, nil
 }
 
-func exportUsers(ctx context.Context, clientService *admin.Service, licensingService *licensing.Service, cfg *config.Config) error {
+func exportUsers(ctx context.Context, clientService *admin.Service, licensingService *licensing.Service, cfg *config.Config, throttleRequests float64) error {
 	log.Println("⇄ Exporting users from GSuite...")
 	// get the users array
 	users, err := glib.GetListOfUsers(*clientService)
@@ -46,7 +46,7 @@ func exportUsers(ctx context.Context, clientService *admin.Service, licensingSer
 	} else {
 		for _, u := range users {
 			// get user licenses
-			userLicenses, err := glib.GetUserLicenses(licensingService, u.PrimaryEmail)
+			userLicenses, err := glib.GetUserLicenses(licensingService, u.PrimaryEmail, throttleRequests)
 			if err != nil {
 				return err
 			}

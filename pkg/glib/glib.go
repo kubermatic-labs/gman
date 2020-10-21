@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strconv"
+	"time"
 
 	"github.com/kubermatic-labs/gman/pkg/config"
 	"github.com/kubermatic-labs/gman/pkg/data"
@@ -122,7 +123,7 @@ func GetUserEmails(user *admin.User) (string, string) {
 }
 
 // CreateUser creates a new user in GSuite via their API
-func CreateUser(srv admin.Service, licensingSrv licensing.Service, user *config.UserConfig) error {
+func CreateUser(srv admin.Service, licensingSrv licensing.Service, user *config.UserConfig, throttleRequests float64) error {
 	// generate a rand password
 	pass, err := password.Generate(20, 5, 5, false, false)
 	if err != nil {
@@ -142,7 +143,7 @@ func CreateUser(srv admin.Service, licensingSrv licensing.Service, user *config.
 		return err
 	}
 
-	err = HandleUserLicenses(licensingSrv, newUser, user.Licenses)
+	err = HandleUserLicenses(licensingSrv, newUser, user.Licenses, throttleRequests)
 	if err != nil {
 		return err
 	}
@@ -160,7 +161,7 @@ func DeleteUser(srv admin.Service, user *admin.User) error {
 }
 
 // UpdateUser updates the remote user with config
-func UpdateUser(srv admin.Service, licensingSrv licensing.Service, user *config.UserConfig) error {
+func UpdateUser(srv admin.Service, licensingSrv licensing.Service, user *config.UserConfig, throttleRequests float64) error {
 	updatedUser := createGSuiteUserFromConfig(srv, user)
 	_, err := srv.Users.Update(user.PrimaryEmail, updatedUser).Do()
 	if err != nil {
@@ -172,7 +173,7 @@ func UpdateUser(srv admin.Service, licensingSrv licensing.Service, user *config.
 		return err
 	}
 
-	err = HandleUserLicenses(licensingSrv, updatedUser, user.Licenses)
+	err = HandleUserLicenses(licensingSrv, updatedUser, user.Licenses, throttleRequests)
 	if err != nil {
 		return err
 	}
@@ -717,10 +718,12 @@ func createGSuiteOUFromConfig(ou *config.OrgUnitConfig) *admin.OrgUnit {
 //----------------------------------------//
 
 // GetUserLicense returns a list of licenses of a user
-func GetUserLicenses(srv *licensing.Service, user string) ([]data.License, error) {
+func GetUserLicenses(srv *licensing.Service, user string, throttleRequests float64) ([]data.License, error) {
 	var userLicenses []data.License
 	for _, license := range data.GoogleLicenses {
 		_, err := srv.LicenseAssignments.Get(license.ProductId, license.SkuId, user).Do()
+		// delay API requests
+		time.Sleep(time.Duration(throttleRequests) * time.Second)
 		if err != nil {
 			if err.(*googleapi.Error).Code == 404 {
 				// license doesnt exists
@@ -736,11 +739,13 @@ func GetUserLicenses(srv *licensing.Service, user string) ([]data.License, error
 }
 
 // HandleUserLicenses provides logic for creating/deleting/updating licenses according to config file
-func HandleUserLicenses(srv licensing.Service, googleUser *admin.User, configLicenses []string) error {
+func HandleUserLicenses(srv licensing.Service, googleUser *admin.User, configLicenses []string, throttleRequests float64) error {
 	var userLicenses []data.License
 	// request the list of user licenses
 	for _, license := range data.GoogleLicenses {
 		_, err := srv.LicenseAssignments.Get(license.ProductId, license.SkuId, googleUser.PrimaryEmail).Do()
+		// delay API requests
+		time.Sleep(time.Duration(throttleRequests) * time.Second)
 		if err != nil {
 			// error code 404 - if the user does not have this license, the response has a 'not found' error
 			if err.(*googleapi.Error).Code == 404 {

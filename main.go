@@ -31,6 +31,7 @@ func main() {
 		exportMode            = false
 		clientSecretFile      = ""
 		impersonatedUserEmail = ""
+		throttleRequests      = 0.6
 	)
 
 	flag.StringVar(&configFile, "config", configFile, "path to the config.yaml")
@@ -40,6 +41,7 @@ func main() {
 	flag.BoolVar(&confirm, "confirm", confirm, "must be set to actually perform any changes")
 	flag.BoolVar(&validate, "validate", validate, "validate the given configuration and then exit; does not need API key and impersonated email")
 	flag.BoolVar(&exportMode, "export", exportMode, "export the state and update the config file (-config flag)")
+	flag.Float64Var(&throttleRequests, "throttle-requests", throttleRequests, "the delay between Enterprise Licensing API requests expressed in seconds")
 
 	flag.Parse()
 
@@ -124,7 +126,7 @@ func main() {
 	if exportMode {
 		log.Printf("► Exporting organization %s…", cfg.Organization)
 
-		newConfig, err := export.ExportConfiguration(ctx, cfg.Organization, srv, grSrv, licSrv)
+		newConfig, err := export.ExportConfiguration(ctx, cfg.Organization, srv, grSrv, licSrv, throttleRequests)
 		if err != nil {
 			log.Fatalf("⚠ Failed to export %v.", err)
 		}
@@ -138,7 +140,7 @@ func main() {
 
 	log.Printf("► Updating organization %s…", cfg.Organization)
 
-	err = sync.SyncConfiguration(ctx, cfg, srv, grSrv, licSrv, confirm)
+	err = sync.SyncConfiguration(ctx, cfg, srv, grSrv, licSrv, confirm, throttleRequests)
 	if err != nil {
 		log.Fatalf("⚠ Failed to sync state: %v.", err)
 	}

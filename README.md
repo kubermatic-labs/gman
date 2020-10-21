@@ -24,6 +24,7 @@
     - [Confirming synchronization](#confirming-synchronization)
   - [Limitations](#limitations)
     - [Sending the login info email to the new users](#sending-the-login-info-email-to-the-new-users)
+    - [API requests quota](#api-requests-quota)
   - [Changelog](#changelog)
 <!-- /TOC -->
 
@@ -271,6 +272,10 @@ Due to the fact that it is impossible to automate the send out of the login info
 
 - manually send the login information email from admin console via _RESET PASSWORD_ option (follow instructions on [this official Google documentation](https://support.google.com/a/answer/33319?hl=en))
 - set up a password recovery for users (follow [this official Google documentation](https://support.google.com/a/answer/33382?p=accnt_recovery_users&visit_id=637279854011127407-389630162&rd=1&hl=en) to perform it). This requires the `recovery_email` field to be set for the users. Hence, in the onboarding message the new users ought to be informed about their new GSuite email address and that on the first login, the _Forgot password?_ option should be chosen, so the verification code can be sent to to the private recovery email. 
+
+### API requests quota
+
+In order to retrieve information about licenses of each user, there are multiple API requests performed. This can result in hitting the maximum limit of allowed calls per 100 seconds. In order to avoid it, `Gman` waits after every Enterprise Licensing API request for 0.5 second. This delay can be changed by starting the application with specified flag `-throttle-requests <value>`, where value designates the waiting time in seconds. 
 
 ## Changelog
 
