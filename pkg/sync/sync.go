@@ -10,15 +10,14 @@ import (
 	"github.com/kubermatic-labs/gman/pkg/glib"
 	admin "google.golang.org/api/admin/directory/v1"
 	"google.golang.org/api/groupssettings/v1"
-	"google.golang.org/api/licensing/v1"
 )
 
-func SyncConfiguration(ctx context.Context, cfg *config.Config, clientService *admin.Service, groupService *groupssettings.Service, licensingService *licensing.Service, confirm bool, throttleRequests float64) error {
+func SyncConfiguration(ctx context.Context, cfg *config.Config, clientService *admin.Service, groupService *groupssettings.Service, licensingService glib.LicensingService, confirm bool) error {
 
 	if err := SyncOrgUnits(ctx, clientService, cfg, confirm); err != nil {
 		return fmt.Errorf("failed to sync org units: %v", err)
 	}
-	if err := SyncUsers(ctx, clientService, licensingService, cfg, confirm, throttleRequests); err != nil {
+	if err := SyncUsers(ctx, clientService, licensingService, cfg, confirm); err != nil {
 		return fmt.Errorf("failed to sync users: %v", err)
 	}
 	if err := SyncGroups(ctx, clientService, groupService, cfg, confirm); err != nil {
@@ -28,7 +27,7 @@ func SyncConfiguration(ctx context.Context, cfg *config.Config, clientService *a
 	return nil
 }
 
-func SyncUsers(ctx context.Context, clientService *admin.Service, licensingService *licensing.Service, cfg *config.Config, confirm bool, throttleRequests float64) error {
+func SyncUsers(ctx context.Context, clientService *admin.Service, licensingService glib.LicensingService, cfg *config.Config, confirm bool) error {
 	var (
 		usersToDelete []*admin.User
 		usersToCreate []config.UserConfig
@@ -55,7 +54,7 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, licensingServi
 					found = true
 					// user is existing & should exist, so check if needs an update
 					// get user licenses
-					currentUserLicenses, err := glib.GetUserLicenses(licensingService, currentUser.PrimaryEmail, throttleRequests)
+					currentUserLicenses, err := glib.GetUserLicenses(licensingService, currentUser.PrimaryEmail)
 					if err != nil {
 						return err
 					}
@@ -89,7 +88,7 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, licensingServi
 		if usersToCreate != nil {
 			log.Println("Creating...")
 			for _, user := range usersToCreate {
-				err := glib.CreateUser(*clientService, *licensingService, &user, throttleRequests)
+				err := glib.CreateUser(*clientService, licensingService, &user)
 				if err != nil {
 					return fmt.Errorf("⚠ Failed to create user %s: %v.", user.PrimaryEmail, err)
 				} else {
@@ -111,7 +110,7 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, licensingServi
 		if usersToUpdate != nil {
 			log.Println("Updating...")
 			for _, user := range usersToUpdate {
-				err := glib.UpdateUser(*clientService, *licensingService, &user, throttleRequests)
+				err := glib.UpdateUser(*clientService, licensingService, &user)
 				if err != nil {
 					return fmt.Errorf("⚠ Failed to update user %s: %v.", user.PrimaryEmail, err)
 				} else {

@@ -9,10 +9,9 @@ import (
 	"github.com/kubermatic-labs/gman/pkg/glib"
 	admin "google.golang.org/api/admin/directory/v1"
 	groupssettings "google.golang.org/api/groupssettings/v1"
-	"google.golang.org/api/licensing/v1"
 )
 
-func ExportConfiguration(ctx context.Context, organization string, clientService *admin.Service, groupService *groupssettings.Service, licensingService *licensing.Service, throttleRequests float64) (*config.Config, error) {
+func ExportConfiguration(ctx context.Context, organization string, clientService *admin.Service, groupService *groupssettings.Service, licensingService glib.LicensingService) (*config.Config, error) {
 	cfg := &config.Config{
 		Organization: organization,
 	}
@@ -21,7 +20,7 @@ func ExportConfiguration(ctx context.Context, organization string, clientService
 		return cfg, fmt.Errorf("org units: %v", err)
 	}
 
-	if err := exportUsers(ctx, clientService, licensingService, cfg, throttleRequests); err != nil {
+	if err := exportUsers(ctx, clientService, licensingService, cfg); err != nil {
 		return cfg, fmt.Errorf("users: %v", err)
 	}
 
@@ -32,7 +31,7 @@ func ExportConfiguration(ctx context.Context, organization string, clientService
 	return cfg, nil
 }
 
-func exportUsers(ctx context.Context, clientService *admin.Service, licensingService *licensing.Service, cfg *config.Config, throttleRequests float64) error {
+func exportUsers(ctx context.Context, clientService *admin.Service, licensingService glib.LicensingService, cfg *config.Config) error {
 	log.Println("⇄ Exporting users from GSuite...")
 	// get the users array
 	users, err := glib.GetListOfUsers(*clientService)
@@ -46,7 +45,7 @@ func exportUsers(ctx context.Context, clientService *admin.Service, licensingSer
 	} else {
 		for _, u := range users {
 			// get user licenses
-			userLicenses, err := glib.GetUserLicenses(licensingService, u.PrimaryEmail, throttleRequests)
+			userLicenses, err := glib.GetUserLicenses(licensingService, u.PrimaryEmail)
 			if err != nil {
 				return err
 			}

@@ -275,7 +275,7 @@ Due to the fact that it is impossible to automate the send out of the login info
 
 ### API requests quota
 
-In order to retrieve information about licenses of each user, there are multiple API requests performed. This can result in hitting the maximum limit of allowed calls per 100 seconds. In order to avoid it, `Gman` waits after every Enterprise Licensing API request for 0.6 second. This delay can be changed by starting the application with specified flag `-throttle-requests <value>`, where value designates the waiting time in seconds. 
+In order to retrieve information about licenses of each user, there are multiple API requests performed. This can result in hitting the maximum limit of allowed calls per 100 seconds. In order to avoid it, `Gman` waits after every Enterprise Licensing API request for 0.5 second. This delay can be changed by starting the application with specified flag `-throttle-requests <value>`, where value designates the waiting time in seconds. 
 
 ## Changelog
 
