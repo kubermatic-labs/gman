@@ -119,14 +119,9 @@ func main() {
 		log.Fatalf("⚠ Failed to create GSuite Groupssettings API client: %v", err)
 	}
 
-	licnsSrv, err := glib.NewLicensingService(clientSecretFile, impersonatedUserEmail)
+	licSrv, err := glib.NewLicensingService(clientSecretFile, impersonatedUserEmail, throttleRequests)
 	if err != nil {
 		log.Fatalf("⚠ Failed to create GSuite Licensing API client: %v", err)
-	}
-
-	licSrv := glib.LicensingService{
-		Service:          licnsSrv,
-		ThrottleRequests: throttleRequests,
 	}
 
 	if exportMode {
