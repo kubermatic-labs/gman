@@ -9,10 +9,9 @@ import (
 	"github.com/kubermatic-labs/gman/pkg/glib"
 	admin "google.golang.org/api/admin/directory/v1"
 	groupssettings "google.golang.org/api/groupssettings/v1"
-	"google.golang.org/api/licensing/v1"
 )
 
-func ExportConfiguration(ctx context.Context, organization string, clientService *admin.Service, groupService *groupssettings.Service, licensingService *licensing.Service) (*config.Config, error) {
+func ExportConfiguration(ctx context.Context, organization string, clientService *admin.Service, groupService *groupssettings.Service, licensingService *glib.LicensingService) (*config.Config, error) {
 	cfg := &config.Config{
 		Organization: organization,
 	}
@@ -32,7 +31,7 @@ func ExportConfiguration(ctx context.Context, organization string, clientService
 	return cfg, nil
 }
 
-func exportUsers(ctx context.Context, clientService *admin.Service, licensingService *licensing.Service, cfg *config.Config) error {
+func exportUsers(ctx context.Context, clientService *admin.Service, licensingService *glib.LicensingService, cfg *config.Config) error {
 	log.Println("⇄ Exporting users from GSuite...")
 	// get the users array
 	users, err := glib.GetListOfUsers(*clientService)

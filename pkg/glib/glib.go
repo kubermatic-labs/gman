@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strconv"
+	"time"
 
 	"github.com/kubermatic-labs/gman/pkg/config"
 	"github.com/kubermatic-labs/gman/pkg/data"
@@ -17,6 +18,12 @@ import (
 	"google.golang.org/api/licensing/v1"
 	"google.golang.org/api/option"
 )
+
+// embedded structure for holding Google API Licensing Service and the delay between its requests
+type LicensingService struct {
+	*licensing.Service
+	ThrottleRequests time.Duration
+}
 
 // NewDirectoryService() creates a client for communicating with Google Directory API,
 // returns a service object authorized to perform actions in Gsuite.
@@ -70,7 +77,7 @@ func NewGroupsService(clientSecretFile string, impersonatedUserEmail string) (*g
 
 // NewLicensingService() creates a client for communicating with Google Licensing API,
 // returns a service object authorized to perform actions in Gsuite.
-func NewLicensingService(clientSecretFile string, impersonatedUserEmail string) (*licensing.Service, error) {
+func NewLicensingService(clientSecretFile string, impersonatedUserEmail string, throttleRequests time.Duration) (*LicensingService, error) {
 	ctx := context.Background()
 
 	jsonCredentials, err := ioutil.ReadFile(clientSecretFile)
@@ -90,7 +97,13 @@ func NewLicensingService(clientSecretFile string, impersonatedUserEmail string) 
 	if err != nil {
 		return nil, fmt.Errorf("unable to create a new Licensing Service: %v", err)
 	}
-	return srv, nil
+
+	newLicSrv := &LicensingService{
+		Service:          srv,
+		ThrottleRequests: throttleRequests,
+	}
+
+	return newLicSrv, nil
 }
 
 //----------------------------------------//
@@ -122,7 +135,7 @@ func GetUserEmails(user *admin.User) (string, string) {
 }
 
 // CreateUser creates a new user in GSuite via their API
-func CreateUser(srv admin.Service, licensingSrv licensing.Service, user *config.UserConfig) error {
+func CreateUser(srv admin.Service, licensingSrv *LicensingService, user *config.UserConfig) error {
 	// generate a rand password
 	pass, err := password.Generate(20, 5, 5, false, false)
 	if err != nil {
@@ -160,7 +173,7 @@ func DeleteUser(srv admin.Service, user *admin.User) error {
 }
 
 // UpdateUser updates the remote user with config
-func UpdateUser(srv admin.Service, licensingSrv licensing.Service, user *config.UserConfig) error {
+func UpdateUser(srv admin.Service, licensingSrv *LicensingService, user *config.UserConfig) error {
 	updatedUser := createGSuiteUserFromConfig(srv, user)
 	_, err := srv.Users.Update(user.PrimaryEmail, updatedUser).Do()
 	if err != nil {
@@ -717,10 +730,12 @@ func createGSuiteOUFromConfig(ou *config.OrgUnitConfig) *admin.OrgUnit {
 //----------------------------------------//
 
 // GetUserLicense returns a list of licenses of a user
-func GetUserLicenses(srv *licensing.Service, user string) ([]data.License, error) {
+func GetUserLicenses(srv *LicensingService, user string) ([]data.License, error) {
 	var userLicenses []data.License
 	for _, license := range data.GoogleLicenses {
 		_, err := srv.LicenseAssignments.Get(license.ProductId, license.SkuId, user).Do()
+		// delay API requests
+		time.Sleep(srv.ThrottleRequests)
 		if err != nil {
 			if err.(*googleapi.Error).Code == 404 {
 				// license doesnt exists
@@ -736,11 +751,13 @@ func GetUserLicenses(srv *licensing.Service, user string) ([]data.License, error
 }
 
 // HandleUserLicenses provides logic for creating/deleting/updating licenses according to config file
-func HandleUserLicenses(srv licensing.Service, googleUser *admin.User, configLicenses []string) error {
+func HandleUserLicenses(srv *LicensingService, googleUser *admin.User, configLicenses []string) error {
 	var userLicenses []data.License
 	// request the list of user licenses
 	for _, license := range data.GoogleLicenses {
 		_, err := srv.LicenseAssignments.Get(license.ProductId, license.SkuId, googleUser.PrimaryEmail).Do()
+		// delay API requests
+		time.Sleep(srv.ThrottleRequests)
 		if err != nil {
 			// error code 404 - if the user does not have this license, the response has a 'not found' error
 			if err.(*googleapi.Error).Code == 404 {

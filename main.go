@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/kubermatic-labs/gman/pkg/config"
 	"github.com/kubermatic-labs/gman/pkg/export"
@@ -31,6 +32,7 @@ func main() {
 		exportMode            = false
 		clientSecretFile      = ""
 		impersonatedUserEmail = ""
+		throttleRequests      = 500 * time.Millisecond
 	)
 
 	flag.StringVar(&configFile, "config", configFile, "path to the config.yaml")
@@ -40,6 +42,7 @@ func main() {
 	flag.BoolVar(&confirm, "confirm", confirm, "must be set to actually perform any changes")
 	flag.BoolVar(&validate, "validate", validate, "validate the given configuration and then exit; does not need API key and impersonated email")
 	flag.BoolVar(&exportMode, "export", exportMode, "export the state and update the config file (-config flag)")
+	flag.DurationVar(&throttleRequests, "throttle-requests", throttleRequests, "the delay between Enterprise Licensing API requests")
 
 	flag.Parse()
 
@@ -116,7 +119,7 @@ func main() {
 		log.Fatalf("⚠ Failed to create GSuite Groupssettings API client: %v", err)
 	}
 
-	licSrv, err := glib.NewLicensingService(clientSecretFile, impersonatedUserEmail)
+	licSrv, err := glib.NewLicensingService(clientSecretFile, impersonatedUserEmail, throttleRequests)
 	if err != nil {
 		log.Fatalf("⚠ Failed to create GSuite Licensing API client: %v", err)
 	}
