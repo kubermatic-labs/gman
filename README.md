@@ -43,7 +43,6 @@ For more detailed information, see [the official Google documentation](https://d
 
 Moreover, to access the extended settings of the groups, the **Groups Settings API** must be enabled (see [the official documentation](https://developers.google.com/admin-sdk/groups-settings/prerequisites#prereqs-enableapis)). To manage user licenses the **Enterprise License Manager API** has to be activated too (see [the official documentation](https://developers.google.com/admin-sdk/licensing/v1/how-tos/prerequisites#api-setup-steps)).
 
-
 ### Service account 
 
 To authorize and to perform the operations on behalf of *Gman* a Service Account is required. 
@@ -101,9 +100,7 @@ The configuration can be splitted as well in different files:
 - groups config file, specified by flag `-groups-config <value.yaml>`
 - organizational units config file, specified by flag `-orgunits-config <value.yaml>`
 
-Splitting the configuration allows as well to use *Gman* to manage only users, groups or organizational units, depending on the need. In that case, the scopes of service account can be reduced: 
-
-
+Splitting the configuration allows as well to use *Gman* to manage only users, groups or organizational units, depending on the need. 
 
 ## Usage
 
