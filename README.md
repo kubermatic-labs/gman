@@ -90,10 +90,19 @@ All configuration of the users happens in a YAML file. See the [configuration do
 This file must be created beforehand with the minimal configuration, i.e. organization name specified. 
 In order to get the initial config of the users that are already in place in your Organizaiton, run *Gman* with `-export` flag specified, so the depicted on your side YAML can be populated. 
 
-There are two ways to specify the path to the configuration YAML file:
+There are two ways to specify the path to the general configuration YAML file:
 
 - set up environmental variable: `GMAN_CONFIG_FILE=<VALUE>` 
 - start the application with specified flag `-config <value>`
+
+The configuration can be splitted as well in different files: 
+
+- users config file, specified by flag `-users-config <value.yaml>`
+- groups config file, specified by flag `-groups-config <value.yaml>`
+- organizational units config file, specified by flag `-orgunits-config <value.yaml>`
+
+Splitting the configuration allows as well to use *Gman* to manage only users, groups or organizational units, depending on the need. In that case, the scopes of service account can be reduced: 
+
 
 
 ## Usage
