@@ -37,11 +37,11 @@ func main() {
 		impersonatedUserEmail = ""
 		throttleRequests      = 500 * time.Millisecond
 
-		splittedConfig = false
-		userCfg        *config.Config
-		groupCfg       *config.Config
-		orgunitsCfg    *config.Config
-		err            error
+		splitConfig = false
+		userCfg     *config.Config
+		groupCfg    *config.Config
+		orgunitsCfg *config.Config
+		err         error
 	)
 
 	flag.StringVar(&configFile, "config", configFile, "path to the config.yaml that manages whole organization; cannot be used together with separated config files for users/groups/organizational units")
@@ -63,14 +63,13 @@ func main() {
 		return
 	}
 
-	if usersConfigFile != "" || groupsConfigFile != "" || orgunitsConfigFile != "" {
-		splittedConfig = true
-	}
-	if splittedConfig == true && configFile != "" {
+	splitConfig = usersConfigFile != "" || groupsConfigFile != "" || orgunitsConfigFile != ""
+
+	if splitConfig == true && configFile != "" {
 		log.Print("⚠ General configuration file specified (-config); cannot manage resources in separated files as well (-users-config/-groups-config/-orgunits-config).\n\n")
 		flag.Usage()
 		os.Exit(1)
-	} else if splittedConfig == false && configFile == "" {
+	} else if splitConfig == false && configFile == "" {
 		// general config file must be present if no splitted ones are specified
 		configFile = os.Getenv("GMAN_CONFIG_FILE")
 		if configFile == "" {
@@ -78,7 +77,7 @@ func main() {
 			flag.Usage()
 			os.Exit(1)
 		}
-	} else if splittedConfig == false && configFile != "" {
+	} else if splitConfig == false && configFile != "" {
 		// open one config file
 		cfg, err := config.LoadFromFile(configFile)
 		if err != nil {

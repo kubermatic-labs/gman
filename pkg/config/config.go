@@ -108,11 +108,7 @@ func SaveToFile(config *Config, filename string) error {
 
 // validateEmailFormat is a helper function that checks for existance of '@' and the length of the address
 func validateEmailFormat(email string) bool {
-	if (strings.Contains(email, "@")) && len(email) < 129 {
-		return true
-	} else {
-		return false
-	}
+	return (len(email) < 129 && strings.Contains(email, "@"))
 }
 
 func (c *Config) ValidateUsers() []error {

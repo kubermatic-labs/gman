@@ -11,7 +11,6 @@ import (
 )
 
 func ExportUsers(ctx context.Context, clientService *admin.Service, licensingService *glib.LicensingService, cfg *config.Config) error {
-	//log.Println("⇄ Exporting users from GSuite...")
 	// get the users array
 	users, err := glib.GetListOfUsers(*clientService)
 	if err != nil {
@@ -37,7 +36,6 @@ func ExportUsers(ctx context.Context, clientService *admin.Service, licensingSer
 }
 
 func ExportGroups(ctx context.Context, clientService *admin.Service, groupService *groupssettings.Service, cfg *config.Config) error {
-	//log.Println("⇄ Exporting groups from GSuite...")
 	// get the groups array
 	groups, err := glib.GetListOfGroups(clientService)
 	if err != nil {
@@ -70,7 +68,6 @@ func ExportGroups(ctx context.Context, clientService *admin.Service, groupServic
 }
 
 func ExportOrgUnits(ctx context.Context, clientService *admin.Service, cfg *config.Config) error {
-	// log.Println("⇄ Exporting organizational units from GSuite...")
 	// get the users array
 	orgUnits, err := glib.GetListOfOrgUnits(clientService)
 	if err != nil {
