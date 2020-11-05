@@ -43,7 +43,6 @@ For more detailed information, see [the official Google documentation](https://d
 
 Moreover, to access the extended settings of the groups, the **Groups Settings API** must be enabled (see [the official documentation](https://developers.google.com/admin-sdk/groups-settings/prerequisites#prereqs-enableapis)). To manage user licenses the **Enterprise License Manager API** has to be activated too (see [the official documentation](https://developers.google.com/admin-sdk/licensing/v1/how-tos/prerequisites#api-setup-steps)).
 
-
 ### Service account 
 
 To authorize and to perform the operations on behalf of *Gman* a Service Account is required. 
@@ -90,11 +89,18 @@ All configuration of the users happens in a YAML file. See the [configuration do
 This file must be created beforehand with the minimal configuration, i.e. organization name specified. 
 In order to get the initial config of the users that are already in place in your Organizaiton, run *Gman* with `-export` flag specified, so the depicted on your side YAML can be populated. 
 
-There are two ways to specify the path to the configuration YAML file:
+There are two ways to specify the path to the general configuration YAML file:
 
 - set up environmental variable: `GMAN_CONFIG_FILE=<VALUE>` 
 - start the application with specified flag `-config <value>`
 
+The configuration can be splitted as well in different files: 
+
+- users config file, specified by flag `-users-config <value.yaml>`
+- groups config file, specified by flag `-groups-config <value.yaml>`
+- organizational units config file, specified by flag `-orgunits-config <value.yaml>`
+
+Splitting the configuration allows as well to use *Gman* to manage only users, groups or organizational units, depending on the need. 
 
 ## Usage
 

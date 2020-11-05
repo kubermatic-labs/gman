@@ -12,21 +12,6 @@ import (
 	"google.golang.org/api/groupssettings/v1"
 )
 
-func SyncConfiguration(ctx context.Context, cfg *config.Config, clientService *admin.Service, groupService *groupssettings.Service, licensingService *glib.LicensingService, confirm bool) error {
-
-	if err := SyncOrgUnits(ctx, clientService, cfg, confirm); err != nil {
-		return fmt.Errorf("failed to sync org units: %v", err)
-	}
-	if err := SyncUsers(ctx, clientService, licensingService, cfg, confirm); err != nil {
-		return fmt.Errorf("failed to sync users: %v", err)
-	}
-	if err := SyncGroups(ctx, clientService, groupService, cfg, confirm); err != nil {
-		return fmt.Errorf("failed to sync groups: %v", err)
-	}
-
-	return nil
-}
-
 func SyncUsers(ctx context.Context, clientService *admin.Service, licensingService *glib.LicensingService, cfg *config.Config, confirm bool) error {
 	var (
 		usersToDelete []*admin.User

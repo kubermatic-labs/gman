@@ -106,7 +106,12 @@ func SaveToFile(config *Config, filename string) error {
 	return nil
 }
 
-func (c *Config) Validate() []error {
+// validateEmailFormat is a helper function that checks for existance of '@' and the length of the address
+func validateEmailFormat(email string) bool {
+	return (len(email) < 129 && strings.Contains(email, "@"))
+}
+
+func (c *Config) ValidateUsers() []error {
 	var allTheErrors []error
 	re164 := regexp.MustCompile("^\\+[1-9]\\d{1,14}$")
 
@@ -186,6 +191,21 @@ func (c *Config) Validate() []error {
 		userEmails = append(userEmails, user.PrimaryEmail)
 	}
 
+	if allTheErrors != nil {
+		return allTheErrors
+	} else {
+		return nil
+	}
+}
+
+func (c *Config) ValidateGroups() []error {
+	var allTheErrors []error
+
+	// validate organization
+	if c.Organization == "" {
+		allTheErrors = append(allTheErrors, errors.New("no organization configured"))
+	}
+
 	// validate groups
 	groupEmails := []string{}
 	for _, group := range c.Groups {
@@ -237,6 +257,21 @@ func (c *Config) Validate() []error {
 		}
 	}
 
+	if allTheErrors != nil {
+		return allTheErrors
+	} else {
+		return nil
+	}
+}
+
+func (c *Config) ValidateOrgUnits() []error {
+	var allTheErrors []error
+
+	// validate organization
+	if c.Organization == "" {
+		allTheErrors = append(allTheErrors, errors.New("no organization configured"))
+	}
+
 	// validate org_units
 	ouNames := []string{}
 	for _, ou := range c.OrgUnits {
@@ -269,14 +304,5 @@ func (c *Config) Validate() []error {
 		return allTheErrors
 	} else {
 		return nil
-	}
-}
-
-// validateEmailFormat is a helper function that checks for existance of '@' and the length of the address
-func validateEmailFormat(email string) bool {
-	if (strings.Contains(email, "@")) && len(email) < 129 {
-		return true
-	} else {
-		return false
 	}
 }

@@ -2,7 +2,6 @@ package export
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/kubermatic-labs/gman/pkg/config"
@@ -11,28 +10,7 @@ import (
 	groupssettings "google.golang.org/api/groupssettings/v1"
 )
 
-func ExportConfiguration(ctx context.Context, organization string, clientService *admin.Service, groupService *groupssettings.Service, licensingService *glib.LicensingService) (*config.Config, error) {
-	cfg := &config.Config{
-		Organization: organization,
-	}
-
-	if err := exportOrgUnits(ctx, clientService, cfg); err != nil {
-		return cfg, fmt.Errorf("org units: %v", err)
-	}
-
-	if err := exportUsers(ctx, clientService, licensingService, cfg); err != nil {
-		return cfg, fmt.Errorf("users: %v", err)
-	}
-
-	if err := exportGroups(ctx, clientService, groupService, cfg); err != nil {
-		return cfg, fmt.Errorf("groups: %v", err)
-	}
-
-	return cfg, nil
-}
-
-func exportUsers(ctx context.Context, clientService *admin.Service, licensingService *glib.LicensingService, cfg *config.Config) error {
-	log.Println("⇄ Exporting users from GSuite...")
+func ExportUsers(ctx context.Context, clientService *admin.Service, licensingService *glib.LicensingService, cfg *config.Config) error {
 	// get the users array
 	users, err := glib.GetListOfUsers(*clientService)
 	if err != nil {
@@ -51,15 +29,13 @@ func exportUsers(ctx context.Context, clientService *admin.Service, licensingSer
 			}
 			usr := glib.CreateConfigUserFromGSuite(u, userLicenses)
 			cfg.Users = append(cfg.Users, usr)
-
 		}
 	}
 
 	return nil
 }
 
-func exportGroups(ctx context.Context, clientService *admin.Service, groupService *groupssettings.Service, cfg *config.Config) error {
-	log.Println("⇄ Exporting groups from GSuite...")
+func ExportGroups(ctx context.Context, clientService *admin.Service, groupService *groupssettings.Service, cfg *config.Config) error {
 	// get the groups array
 	groups, err := glib.GetListOfGroups(clientService)
 	if err != nil {
@@ -84,7 +60,6 @@ func exportGroups(ctx context.Context, clientService *admin.Service, groupServic
 			if err != nil {
 				return err
 			}
-
 			cfg.Groups = append(cfg.Groups, thisGroup)
 		}
 	}
@@ -92,8 +67,7 @@ func exportGroups(ctx context.Context, clientService *admin.Service, groupServic
 	return nil
 }
 
-func exportOrgUnits(ctx context.Context, clientService *admin.Service, cfg *config.Config) error {
-	log.Println("⇄ Exporting organizational units from GSuite...")
+func ExportOrgUnits(ctx context.Context, clientService *admin.Service, cfg *config.Config) error {
 	// get the users array
 	orgUnits, err := glib.GetListOfOrgUnits(clientService)
 	if err != nil {
