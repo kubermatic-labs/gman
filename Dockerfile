@@ -1,10 +1,8 @@
-FROM golang:1.14-alpine as builder
-ENV GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+FROM golang:1.15-alpine as builder
 
 WORKDIR /app/
 COPY . .
-RUN go mod download
-RUN go build -o gman main.go 
+RUN go build -v .
 
 FROM alpine:3.12
 
