@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#
+
 # This script is creating release binaries and
 # Docker images via goreleaser. It's meant to
 # run in the Kubermatic CI environment only,

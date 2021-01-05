@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/kubermatic-labs/gman/pkg/config"
@@ -239,7 +240,6 @@ func HandleUserAliases(srv admin.Service, googleUser *admin.User, configAliases 
 					return fmt.Errorf("unable to delete user alias: %v", err)
 				}
 			}
-
 		}
 	}
 
@@ -349,7 +349,6 @@ func createGSuiteUserFromConfig(srv admin.Service, user *config.UserConfig) *adm
 			}
 			googleUser.ExternalIds = ids
 		}
-
 	}
 
 	if user.Location != (config.LocationConfig{}) {
@@ -363,7 +362,6 @@ func createGSuiteUserFromConfig(srv admin.Service, user *config.UserConfig) *adm
 			},
 		}
 		googleUser.Locations = loc
-
 	}
 
 	return googleUser
@@ -589,7 +587,6 @@ func CreateGSuiteGroupFromConfig(group *config.GroupConfig) (*admin.Group, *grou
 }
 
 func CreateConfigGroupFromGSuite(googleGroup *admin.Group, members []*admin.Member, gSettings *groupssettings.Groups) (config.GroupConfig, error) {
-
 	boolAllowExternalMembers, err := strconv.ParseBool(gSettings.AllowExternalMembers)
 	if err != nil {
 		return config.GroupConfig{}, fmt.Errorf("could not parse 'AllowExternalMembers' value from string to bool: %v", err)
@@ -618,7 +615,6 @@ func CreateConfigGroupFromGSuite(googleGroup *admin.Group, members []*admin.Memb
 			Email: m.Email,
 			Role:  m.Role,
 		})
-
 	}
 
 	return configGroup, nil
@@ -719,24 +715,17 @@ func CreateOrgUnit(srv admin.Service, ou *config.OrgUnitConfig) error {
 	newOU := createGSuiteOUFromConfig(ou)
 	_, err := srv.Orgunits.Insert("my_customer", newOU).Do()
 	if err != nil {
-		return fmt.Errorf("unable to create an org unit: %v", err)
+		return fmt.Errorf("unable to create org unit: %v", err)
 	}
 	return nil
 }
 
 // DeleteOrgUnit deletes a group in GSuite via their API
 func DeleteOrgUnit(srv admin.Service, ou *admin.OrgUnit) error {
-	// the Orgunits.Delete function takes as an argument the full org unit path, but without first slash...
-	var orgUPath []string
-	if ou.OrgUnitPath[0] == '/' {
-		orgUPath = append([]string{}, ou.OrgUnitPath[1:])
-	} else {
-		orgUPath = append([]string{}, ou.OrgUnitPath)
-	}
-
-	err := srv.Orgunits.Delete("my_customer", orgUPath).Do()
+	// deletion can happen with the full orgunit's path *OR* it's unique ID
+	err := srv.Orgunits.Delete("my_customer", ou.OrgUnitId).Do()
 	if err != nil {
-		return fmt.Errorf("unable to delete an org unit: %v", err)
+		return fmt.Errorf("unable to delete org unit: %v", err)
 	}
 	return nil
 }
@@ -744,17 +733,11 @@ func DeleteOrgUnit(srv admin.Service, ou *admin.OrgUnit) error {
 // UpdateOrgUnit updates the remote org unit with config
 func UpdateOrgUnit(srv admin.Service, ou *config.OrgUnitConfig) error {
 	updatedOu := createGSuiteOUFromConfig(ou)
-	// the Orgunits.Update function takes as an argument the full org unit path, but without first slash...
-	var orgUPath []string
-	if ou.OrgUnitPath[0] == '/' {
-		orgUPath = append([]string{}, ou.OrgUnitPath[1:])
-	} else {
-		orgUPath = append([]string{}, ou.OrgUnitPath)
-	}
 
-	_, err := srv.Orgunits.Update("my_customer", orgUPath, updatedOu).Do()
+	// the Orgunits.Update function takes as an argument the full org unit path, but without first slash...
+	_, err := srv.Orgunits.Update("my_customer", strings.TrimPrefix(ou.OrgUnitPath, "/"), updatedOu).Do()
 	if err != nil {
-		return fmt.Errorf("unable to update an org unit: %v", err)
+		return fmt.Errorf("unable to update org unit: %v", err)
 	}
 	return nil
 }
@@ -836,8 +819,7 @@ func HandleUserLicenses(srv *LicensingService, googleUser *admin.User, configLic
 	// check licenses to delete
 	if len(configLicenses) == 0 {
 		for _, license := range userLicenses {
-			err := srv.LicenseAssignments.Delete(license.ProductId, license.SkuId, googleUser.PrimaryEmail).Do()
-			if err != nil {
+			if _, err := srv.LicenseAssignments.Delete(license.ProductId, license.SkuId, googleUser.PrimaryEmail).Do(); err != nil {
 				return fmt.Errorf("unable to delete user license: %v", err)
 			}
 		}
@@ -852,14 +834,11 @@ func HandleUserLicenses(srv *LicensingService, googleUser *admin.User, configLic
 			}
 			if !found {
 				// delete
-				err := srv.LicenseAssignments.Delete(license.ProductId, license.SkuId, googleUser.PrimaryEmail).Do()
-				if err != nil {
+				if _, err := srv.LicenseAssignments.Delete(license.ProductId, license.SkuId, googleUser.PrimaryEmail).Do(); err != nil {
 					return fmt.Errorf("unable to delete user license: %v", err)
 				}
 			}
-
 		}
-
 	}
 
 	return nil
