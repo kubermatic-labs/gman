@@ -99,7 +99,11 @@ func SaveToFile(config *Config, filename string) error {
 		return err
 	}
 	defer f.Close()
-	if err := yaml.NewEncoder(f).Encode(config); err != nil {
+
+	encoder := yaml.NewEncoder(f)
+	encoder.SetIndent(2)
+
+	if err := encoder.Encode(config); err != nil {
 		return err
 	}
 
