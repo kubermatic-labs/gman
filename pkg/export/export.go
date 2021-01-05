@@ -3,6 +3,7 @@ package export
 import (
 	"context"
 	"log"
+	"sort"
 
 	"github.com/kubermatic-labs/gman/pkg/config"
 	"github.com/kubermatic-labs/gman/pkg/glib"
@@ -35,6 +36,10 @@ func ExportUsers(ctx context.Context, clientService *admin.Service, licensingSer
 			usr := glib.CreateConfigUserFromGSuite(u, userLicenses)
 			cfg.Users = append(cfg.Users, usr)
 		}
+
+		sort.Slice(cfg.Users, func(i, j int) bool {
+			return cfg.Users[i].PrimaryEmail < cfg.Users[j].PrimaryEmail
+		})
 	}
 
 	return nil
@@ -71,6 +76,10 @@ func ExportGroups(ctx context.Context, clientService *admin.Service, groupServic
 			}
 			cfg.Groups = append(cfg.Groups, thisGroup)
 		}
+
+		sort.Slice(cfg.Groups, func(i, j int) bool {
+			return cfg.Groups[i].Name < cfg.Groups[j].Name
+		})
 	}
 
 	return nil
@@ -100,6 +109,10 @@ func ExportOrgUnits(ctx context.Context, clientService *admin.Service, cfg *conf
 				OrgUnitPath:       ou.OrgUnitPath,
 			})
 		}
+
+		sort.Slice(cfg.OrgUnits, func(i, j int) bool {
+			return cfg.OrgUnits[i].Name < cfg.OrgUnits[j].Name
+		})
 	}
 
 	return nil
