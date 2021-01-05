@@ -112,11 +112,26 @@ func NewLicensingService(clientSecretFile string, impersonatedUserEmail string, 
 
 // GetListOfUsers returns a list of all current users form the API
 func GetListOfUsers(srv admin.Service) ([]*admin.User, error) {
-	request, err := srv.Users.List().Customer("my_customer").OrderBy("email").Do()
-	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve list of users in domain: %v", err)
+	users := []*admin.User{}
+	token := ""
+
+	for {
+		request := srv.Users.List().Customer("my_customer").OrderBy("email").PageToken(token)
+
+		response, err := request.Do()
+		if err != nil {
+			return nil, fmt.Errorf("unable to retrieve list of users in domain: %v", err)
+		}
+
+		users = append(users, response.Users...)
+
+		token = response.NextPageToken
+		if token == "" {
+			break
+		}
 	}
-	return request.Users, nil
+
+	return users, nil
 }
 
 // GetUserEmails retrieves primary and secondary (type: work) user email addresses
@@ -472,11 +487,26 @@ func CreateConfigUserFromGSuite(googleUser *admin.User, userLicenses []data.Lice
 
 // GetListOfGroups returns a list of all current groups from the API
 func GetListOfGroups(srv *admin.Service) ([]*admin.Group, error) {
-	request, err := srv.Groups.List().Customer("my_customer").OrderBy("email").Do()
-	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve a list of groups in domain: %v", err)
+	groups := []*admin.Group{}
+	token := ""
+
+	for {
+		request := srv.Groups.List().Customer("my_customer").OrderBy("email").PageToken(token)
+
+		response, err := request.Do()
+		if err != nil {
+			return nil, fmt.Errorf("unable to retrieve list of groups in domain: %v", err)
+		}
+
+		groups = append(groups, response.Groups...)
+
+		token = response.NextPageToken
+		if token == "" {
+			break
+		}
 	}
-	return request.Groups, nil
+
+	return groups, nil
 }
 
 // GetSettingOfGroup returns a group settings object from the API
@@ -497,7 +527,9 @@ func CreateGroup(srv admin.Service, grSrv groupssettings.Service, group *config.
 	}
 	// add the members
 	for _, member := range group.Members {
-		AddNewMember(srv, newGroup.Email, &member)
+		if err := AddNewMember(srv, newGroup.Email, &member); err != nil {
+			return fmt.Errorf("failed to add %s to group: %v", member.Email, err)
+		}
 	}
 	// add the group's settings
 	_, err = grSrv.Groups.Update(newGroup.Email, groupSettings).Do()
@@ -598,11 +630,26 @@ func CreateConfigGroupFromGSuite(googleGroup *admin.Group, members []*admin.Memb
 
 // GetListOfMembers returns a list of all current group members form the API
 func GetListOfMembers(srv *admin.Service, group *admin.Group) ([]*admin.Member, error) {
-	request, err := srv.Members.List(group.Email).Do()
-	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve members in group %s: %v", group.Name, err)
+	members := []*admin.Member{}
+	token := ""
+
+	for {
+		request := srv.Members.List(group.Email).PageToken(token)
+
+		response, err := request.Do()
+		if err != nil {
+			return nil, fmt.Errorf("unable to retrieve list of members in group %s: %v", group.Name, err)
+		}
+
+		members = append(members, response.Members...)
+
+		token = response.NextPageToken
+		if token == "" {
+			break
+		}
 	}
-	return request.Members, nil
+
+	return members, nil
 }
 
 // AddNewMember adds a new member to a group in GSuite
@@ -659,6 +706,7 @@ func createGSuiteGroupMemberFromConfig(member *config.MemberConfig) *admin.Membe
 
 // GetListOfOrgUnits returns a list of all current organizational units form the API
 func GetListOfOrgUnits(srv *admin.Service) ([]*admin.OrgUnit, error) {
+	// OrgUnits do not use pagination and always return all units in a single API call.
 	request, err := srv.Orgunits.List("my_customer").Type("all").Do()
 	if err != nil {
 		return nil, fmt.Errorf("unable to list OrgUnits in domain: %v", err)
@@ -770,7 +818,7 @@ func HandleUserLicenses(srv *LicensingService, googleUser *admin.User, configLic
 					}
 				}
 				// if config includes it (found in config), add it
-				if found == true {
+				if found {
 					_, err := srv.LicenseAssignments.Insert(license.ProductId, license.SkuId, &licensing.LicenseAssignmentInsert{UserId: googleUser.PrimaryEmail}).Do()
 					if err != nil {
 						return fmt.Errorf("unable to insert user license: %v", err)

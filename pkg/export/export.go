@@ -22,11 +22,14 @@ func ExportUsers(ctx context.Context, clientService *admin.Service, licensingSer
 		log.Println("⚠ No users found.")
 	} else {
 		for _, u := range users {
+			log.Printf("  %s", u.PrimaryEmail)
+
 			// get user licenses
 			userLicenses, err := glib.GetUserLicenses(licensingService, u.PrimaryEmail)
 			if err != nil {
 				return err
 			}
+
 			usr := glib.CreateConfigUserFromGSuite(u, userLicenses)
 			cfg.Users = append(cfg.Users, usr)
 		}
@@ -48,6 +51,8 @@ func ExportGroups(ctx context.Context, clientService *admin.Service, groupServic
 		log.Println("⚠ No groups found.")
 	} else {
 		for _, g := range groups {
+			log.Printf("  %s", g.Name)
+
 			members, err = glib.GetListOfMembers(clientService, g)
 			if err != nil {
 				return err
@@ -79,6 +84,8 @@ func ExportOrgUnits(ctx context.Context, clientService *admin.Service, cfg *conf
 		log.Println("⚠ No OrgUnits found.")
 	} else {
 		for _, ou := range orgUnits {
+			log.Printf("  %s", ou.Name)
+
 			cfg.OrgUnits = append(cfg.OrgUnits, config.OrgUnitConfig{
 				Name:              ou.Name,
 				Description:       ou.Description,
@@ -86,7 +93,6 @@ func ExportOrgUnits(ctx context.Context, clientService *admin.Service, cfg *conf
 				BlockInheritance:  ou.BlockInheritance,
 				OrgUnitPath:       ou.OrgUnitPath,
 			})
-
 		}
 	}
 
