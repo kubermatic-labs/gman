@@ -117,7 +117,7 @@ func validateEmailFormat(email string) bool {
 
 func (c *Config) ValidateUsers() []error {
 	var allTheErrors []error
-	re164 := regexp.MustCompile("^\\+[1-9]\\d{1,14}$")
+	re164 := regexp.MustCompile(`^\+[1-9]\d{1,14}$`)
 
 	// validate organization
 	if c.Organization == "" {
@@ -137,7 +137,7 @@ func (c *Config) ValidateUsers() []error {
 			if user.PrimaryEmail == user.SecondaryEmail {
 				allTheErrors = append(allTheErrors, fmt.Errorf("user has defined the same primary and secondary email (user: %s)", user.PrimaryEmail))
 			}
-			if validateEmailFormat(user.PrimaryEmail) == false {
+			if !validateEmailFormat(user.PrimaryEmail) {
 				allTheErrors = append(allTheErrors, fmt.Errorf("primary email is not a valid email-address (user: %s)", user.PrimaryEmail))
 			}
 		}
@@ -147,33 +147,33 @@ func (c *Config) ValidateUsers() []error {
 		}
 
 		if user.SecondaryEmail != "" {
-			if validateEmailFormat(user.SecondaryEmail) == false {
+			if !validateEmailFormat(user.SecondaryEmail) {
 				allTheErrors = append(allTheErrors, fmt.Errorf("secondary email is not a valid email-address (user: %s)", user.PrimaryEmail))
 			}
 		}
 
 		if user.RecoveryEmail != "" {
-			if validateEmailFormat(user.RecoveryEmail) == false {
+			if !validateEmailFormat(user.RecoveryEmail) {
 				allTheErrors = append(allTheErrors, fmt.Errorf("recovery email is not a valid email-address (user: %s)", user.PrimaryEmail))
 			}
 		}
 
 		if len(user.Aliases) > 0 {
 			for _, alias := range user.Aliases {
-				if validateEmailFormat(alias) == false {
+				if !validateEmailFormat(alias) {
 					allTheErrors = append(allTheErrors, fmt.Errorf("alias email is not a valid email-address (user: %s)", user.PrimaryEmail))
 				}
 			}
 		}
 
 		if user.Employee.ManagerEmail != "" {
-			if validateEmailFormat(user.Employee.ManagerEmail) == false {
+			if !validateEmailFormat(user.Employee.ManagerEmail) {
 				allTheErrors = append(allTheErrors, fmt.Errorf("manager's email is not a valid email-address (user: %s)", user.PrimaryEmail))
 			}
 		}
 
 		if user.RecoveryPhone != "" {
-			if re164.MatchString(user.RecoveryPhone) == false {
+			if !re164.MatchString(user.RecoveryPhone) {
 				allTheErrors = append(allTheErrors, fmt.Errorf("invalid format of recovery phone (user: %s). The phone number must be in the E.164 format, starting with the plus sign (+). Example: +16506661212.", user.PrimaryEmail))
 			}
 		}
@@ -197,9 +197,9 @@ func (c *Config) ValidateUsers() []error {
 
 	if allTheErrors != nil {
 		return allTheErrors
-	} else {
-		return nil
 	}
+
+	return nil
 }
 
 func (c *Config) ValidateGroups() []error {
@@ -217,7 +217,7 @@ func (c *Config) ValidateGroups() []error {
 			allTheErrors = append(allTheErrors, fmt.Errorf("duplicate group email defined (%s)", group.Email))
 		}
 
-		if validateEmailFormat(group.Email) == false {
+		if !validateEmailFormat(group.Email) {
 			allTheErrors = append(allTheErrors, fmt.Errorf("group email is not a valid email-address (%s)", group.Email))
 		}
 
@@ -263,9 +263,9 @@ func (c *Config) ValidateGroups() []error {
 
 	if allTheErrors != nil {
 		return allTheErrors
-	} else {
-		return nil
 	}
+
+	return nil
 }
 
 func (c *Config) ValidateOrgUnits() []error {
@@ -306,7 +306,7 @@ func (c *Config) ValidateOrgUnits() []error {
 
 	if allTheErrors != nil {
 		return allTheErrors
-	} else {
-		return nil
 	}
+
+	return nil
 }
