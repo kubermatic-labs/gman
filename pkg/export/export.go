@@ -17,6 +17,8 @@ func ExportUsers(ctx context.Context, clientService *admin.Service, licensingSer
 		return err
 	}
 
+	cfg.Users = []config.UserConfig{}
+
 	// save to file
 	if len(users) == 0 {
 		log.Println("⚠ No users found.")
@@ -45,6 +47,8 @@ func ExportGroups(ctx context.Context, clientService *admin.Service, groupServic
 		return err
 	}
 	var members []*admin.Member
+
+	cfg.Groups = []config.GroupConfig{}
 
 	// save to file
 	if len(groups) == 0 {
@@ -78,6 +82,8 @@ func ExportOrgUnits(ctx context.Context, clientService *admin.Service, cfg *conf
 	if err != nil {
 		return err
 	}
+
+	cfg.OrgUnits = []config.OrgUnitConfig{}
 
 	// save to file
 	if len(orgUnits) == 0 {
