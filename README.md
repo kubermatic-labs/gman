@@ -1,6 +1,6 @@
 # gman
 
-*gman links all GSuite accounts with the matching user-list storage in form of a YAML. It is based on the [Aquayman](https://github.com/kubermatic-labs/aquayman) tool.*
+*gman links all GSuite accounts with the matching user-list storage in form of a YAML. It is based on [Aquayman](https://github.com/kubermatic-labs/aquayman).*
 
 **Features:**
 
@@ -30,23 +30,23 @@
 
 ## Installation
 
-The official releases can be found [here](https://github.com/kubermatic-labs/gman/releases).
+The official releases can be found [on GitHub](https://github.com/kubermatic-labs/gman/releases).
 
-## Configuration & Authentication 
+## Configuration & Authentication
 
-### Basics: Admin & Directory API 
+### Basics: Admin & Directory API
 
-The **Directory API** is intended for management of devices, groups, group members, organizational units and users. 
+The **Directory API** is intended for management of devices, groups, group members, organizational units and users.
 
-To be able to use it, please make sure that you have access to an admin account in the Admin Console and you have set up your API. 
+To be able to use it, please make sure that you have access to an admin account in the Admin Console and you have set up your API.
 For more detailed information, see [the official Google documentation](https://developers.google.com/admin-sdk/directory/v1/guides/prerequisites).
 
 Moreover, to access the extended settings of the groups, the **Groups Settings API** must be enabled (see [the official documentation](https://developers.google.com/admin-sdk/groups-settings/prerequisites#prereqs-enableapis)). To manage user licenses the **Enterprise License Manager API** has to be activated too (see [the official documentation](https://developers.google.com/admin-sdk/licensing/v1/how-tos/prerequisites#api-setup-steps)).
 
-### Service account 
+### Service account
 
-To authorize and to perform the operations on behalf of *Gman* a Service Account is required. 
-After creating one, it needs to be registered as an API client and have enabled this OAuth scopes: 
+To authorize and to perform the operations on behalf of *Gman* a Service Account is required.
+After creating one, it needs to be registered as an API client and have enabled this OAuth scopes:
 
 * https://www.googleapis.com/auth/admin.directory.user
 * https://www.googleapis.com/auth/admin.directory.user.readonly
@@ -60,51 +60,51 @@ After creating one, it needs to be registered as an API client and have enabled 
 * https://www.googleapis.com/auth/admin.directory.resource.calendar.readonly
 * https://www.googleapis.com/auth/apps.groups.settings
 * https://www.googleapis.com/auth/apps.licensing
-  
+
 Those scopes can be added in Admin console under *Security -> API Controls -> Domain-wide Delegation*.
 
-Furthermore, please, generate a Key (save the *.json* config) for this Service Account. 
+Furthermore, please, generate a Key (save the *.json* config) for this Service Account.
 For more detailed information, follow [the official instructions](https://developers.google.com/admin-sdk/directory/v1/guides/delegation#create_the_service_account_and_credentials).
 
-The Service Account private key must be provided to *Gman*. There are two ways to do so: 
+The Service Account private key must be provided to *Gman*. There are two ways to do so:
 
-- set up environmental variable: `GMAN_SERVICE_ACCOUNT_KEY=<VALUE>` 
+- set up environmental variable: `GMAN_SERVICE_ACCOUNT_KEY=<VALUE>`
 - start the application with specified flag `-private-key </path/to/your/privatekey.json>`
 
-### Impersonated Email 
+### Impersonated Email
 
 Only users with access to the Admin APIs can access the Admin SDK Directory API, therefore the service account needs to impersonate one of the admin users.
 
 In order to delegate domain-wide authority to your service account follow this [official guide](https://developers.google.com/admin-sdk/directory/v1/guides/delegation#delegate_domain-wide_authority_to_your_service_account).
 
-The impersonated email must be specified in *Gman*. There are two ways to do so: 
+The impersonated email must be specified in *Gman*. There are two ways to do so:
 
-- set up environmental variable: `GMAN_IMPERSONATED_EMAIL=<VALUE>` 
+- set up environmental variable: `GMAN_IMPERSONATED_EMAIL=<VALUE>`
 - start the application with specified flag `-impersonated-email <value>`
 
-### Config YAML 
+### Config YAML
 
 All configuration of the users happens in a YAML file. See the [configuration documentation](/Configuration.md) for more information, available parameters and values, or refer to the annotated [config.example.yaml](/config.example.yaml) for the example usage.
 
-This file must be created beforehand with the minimal configuration, i.e. organization name specified. 
-In order to get the initial config of the users that are already in place in your Organizaiton, run *Gman* with `-export` flag specified, so the depicted on your side YAML can be populated. 
+This file must be created beforehand with the minimal configuration, i.e. organization name specified.
+In order to get the initial config of the users that are already in place in your Organizaiton, run *Gman* with `-export` flag specified, so the depicted on your side YAML can be populated.
 
 There are two ways to specify the path to the general configuration YAML file:
 
-- set up environmental variable: `GMAN_CONFIG_FILE=<VALUE>` 
+- set up environmental variable: `GMAN_CONFIG_FILE=<VALUE>`
 - start the application with specified flag `-config <value>`
 
-The configuration can be splitted as well in different files: 
+The configuration can be splitted as well in different files:
 
 - users config file, specified by flag `-users-config <value.yaml>`
 - groups config file, specified by flag `-groups-config <value.yaml>`
 - organizational units config file, specified by flag `-orgunits-config <value.yaml>`
 
-Splitting the configuration allows as well to use *Gman* to manage only users, groups or organizational units, depending on the need. 
+Splitting the configuration allows as well to use *Gman* to manage only users, groups or organizational units, depending on the need.
 
 ## Usage
 
-After the completion of the steps above, *Gman* can perform for you: 
+After the completion of the steps above, *Gman* can perform for you:
 
 1. [exporting](#exporting) existing users in the domain;
 2. [validating](#validating) the config file;
@@ -139,8 +139,8 @@ organization: myorganization
 org_units:
   - name: Developers
     description: dedicated org unit for devs
-    parentOrgUnitPath: / 
-    org_unit_path: /Developers 
+    parentOrgUnitPath: /
+    org_unit_path: /Developers
 users:
   - given_name: Josef
     family_name: K
@@ -168,16 +168,16 @@ It's possible to validate a configuration file for:
   - duplicated users (based on primary email),
   - primary and secondary emails being different,
   - if specified emails obey semantical correctness,
-- organizational unit config: 
+- organizational unit config:
   - duplicated org units,
   - correct parent org unit path,
   - correct org unit path,
-- groups config: 
+- groups config:
   - duplicated groups (based on group email),
   - if specified group email obeys semantical correctness,
   - valid group members roles,
   - valid group members emails.
-  
+
 In order to validate the file, run *Gman* with the `-validate` flag:
 
 ```bash
@@ -186,7 +186,7 @@ $ gman -config myconfig.yaml -validate
 ```
 
 If the config is valid, the program exits with code 0, otherwise with a non-zero code.
-If this flag is specified, *Gman* performs **only** the config validation. Otherwise, validation takes place before every synchronization. 
+If this flag is specified, *Gman* performs **only** the config validation. Otherwise, validation takes place before every synchronization.
 
 ### Synchronizing
 
@@ -241,7 +241,7 @@ gman -config myconfig.yaml -confirm
 2020/06/25 19:01:33 ► Updating organization myorganization...
 2020/06/25 19:01:33 ⇄ Syncing organizational units
 2020/06/25 19:01:34 ✎ Updating...
-2020/06/25 19:01:35     ~ org unit: NewOrgUnit 
+2020/06/25 19:01:35     ~ org unit: NewOrgUnit
 2020/06/25 19:01:35 ⇄ Syncing users
 2020/06/25 19:01:36 ✎ Updating...
 2020/06/25 19:01:36     ~ user: someonenew@myorganization.com
@@ -274,16 +274,15 @@ $ gman -config myconfig.yaml -confirm
 
 ### Sending the login info email to the new users
 
-Due to the fact that it is impossible to automate the send out of the login information email via Google API there are two possibilities to enable the first log in of the new users: 
+Due to the fact that it is impossible to automate the send out of the login information email via Google API there are two possibilities to enable the first log in of the new users:
 
 - manually send the login information email from admin console via _RESET PASSWORD_ option (follow instructions on [this official Google documentation](https://support.google.com/a/answer/33319?hl=en))
-- set up a password recovery for users (follow [this official Google documentation](https://support.google.com/a/answer/33382?p=accnt_recovery_users&visit_id=637279854011127407-389630162&rd=1&hl=en) to perform it). This requires the `recovery_email` field to be set for the users. Hence, in the onboarding message the new users ought to be informed about their new GSuite email address and that on the first login, the _Forgot password?_ option should be chosen, so the verification code can be sent to to the private recovery email. 
+- set up a password recovery for users (follow [this official Google documentation](https://support.google.com/a/answer/33382?p=accnt_recovery_users&visit_id=637279854011127407-389630162&rd=1&hl=en) to perform it). This requires the `recovery_email` field to be set for the users. Hence, in the onboarding message the new users ought to be informed about their new GSuite email address and that on the first login, the _Forgot password?_ option should be chosen, so the verification code can be sent to to the private recovery email.
 
 ### API requests quota
 
-In order to retrieve information about licenses of each user, there are multiple API requests performed. This can result in hitting the maximum limit of allowed calls per 100 seconds. In order to avoid it, `Gman` waits after every Enterprise Licensing API request for 0.5 second. This delay can be changed by starting the application with specified flag `-throttle-requests <value>`, where value designates the waiting time in seconds. 
+In order to retrieve information about licenses of each user, there are multiple API requests performed. This can result in hitting the maximum limit of allowed calls per 100 seconds. In order to avoid it, `Gman` waits after every Enterprise Licensing API request for 0.5 second. This delay can be changed by starting the application with specified flag `-throttle-requests <value>`, where value designates the waiting time in seconds.
 
 ## Changelog
 
 For detailed information on the latest updates, check the [Changelog](CHANGELOG.md).
-
