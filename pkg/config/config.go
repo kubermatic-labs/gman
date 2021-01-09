@@ -73,7 +73,6 @@ type OrgUnitConfig struct {
 	Name              string `yaml:"name"`
 	Description       string `yaml:"description,omitempty"`
 	ParentOrgUnitPath string `yaml:"parent_org_unit_path,omitempty"`
-	OrgUnitPath       string `yaml:"org_unit_path,omitempty"`
 	BlockInheritance  bool   `yaml:"block_inheritance,omitempty"`
 }
 
@@ -292,14 +291,6 @@ func (c *Config) ValidateOrgUnits() []error {
 		} else {
 			if ou.ParentOrgUnitPath[0] != '/' {
 				allTheErrors = append(allTheErrors, fmt.Errorf("'ParentOrgUnitPath' must start with a slash (org unit %s)", ou.Name))
-			}
-		}
-
-		if ou.OrgUnitPath == "" {
-			allTheErrors = append(allTheErrors, fmt.Errorf("'OrgUnitPath' is not specified (org unit %s)", ou.Name))
-		} else {
-			if ou.OrgUnitPath[0] != '/' {
-				allTheErrors = append(allTheErrors, fmt.Errorf("'OrgUnitPath' must start with a slash (org unit %s)", ou.Name))
 			}
 		}
 	}

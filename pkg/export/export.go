@@ -106,7 +106,6 @@ func ExportOrgUnits(ctx context.Context, clientService *admin.Service, cfg *conf
 				Description:       ou.Description,
 				ParentOrgUnitPath: ou.ParentOrgUnitPath,
 				BlockInheritance:  ou.BlockInheritance,
-				OrgUnitPath:       ou.OrgUnitPath,
 			})
 		}
 

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/kubermatic-labs/gman/pkg/config"
@@ -734,8 +733,12 @@ func DeleteOrgUnit(srv admin.Service, ou *admin.OrgUnit) error {
 func UpdateOrgUnit(srv admin.Service, ou *config.OrgUnitConfig) error {
 	updatedOu := createGSuiteOUFromConfig(ou)
 
-	// the Orgunits.Update function takes as an argument the full org unit path, but without first slash...
-	_, err := srv.Orgunits.Update("my_customer", strings.TrimPrefix(ou.OrgUnitPath, "/"), updatedOu).Do()
+	// to update, we need the org unit's ID or its path;
+	// we have neither, but since the path is always just "{parent}/{orgunit-name}",
+	// we can construct it (there is no encoding/escaping in the paths, amazingly)
+	path := ou.ParentOrgUnitPath + "/" + ou.Name
+
+	_, err := srv.Orgunits.Update("my_customer", path, updatedOu).Do()
 	if err != nil {
 		return fmt.Errorf("unable to update org unit: %v", err)
 	}
@@ -744,16 +747,11 @@ func UpdateOrgUnit(srv admin.Service, ou *config.OrgUnitConfig) error {
 
 // createGSuiteOUFromConfig converts a OrgUnitConfig to (GSuite) admin.OrgUnit
 func createGSuiteOUFromConfig(ou *config.OrgUnitConfig) *admin.OrgUnit {
-	googleOU := &admin.OrgUnit{
-		Name: ou.Name,
-		//OrgUnitPath:       ou.OrgUnitPath,
+	return &admin.OrgUnit{
+		Name:              ou.Name,
+		Description:       ou.Description,
 		ParentOrgUnitPath: ou.ParentOrgUnitPath,
 	}
-	if ou.Description != "" {
-		googleOU.Description = ou.Description
-	}
-
-	return googleOU
 }
 
 //----------------------------------------//
