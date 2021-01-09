@@ -15,23 +15,23 @@ import (
 
 type Config struct {
 	Organization string    `yaml:"organization"`
-	OrgUnits     []OrgUnit `yaml:"org_units,omitempty"`
+	OrgUnits     []OrgUnit `yaml:"orgUnits,omitempty"`
 	Users        []User    `yaml:"users,omitempty"`
 	Groups       []Group   `yaml:"groups,omitempty"`
 }
 
 type User struct {
-	FirstName      string   `yaml:"given_name"`
-	LastName       string   `yaml:"family_name"`
-	PrimaryEmail   string   `yaml:"primary_email"`
-	SecondaryEmail string   `yaml:"secondary_email,omitempty"`
+	FirstName      string   `yaml:"givenName"`
+	LastName       string   `yaml:"familyName"`
+	PrimaryEmail   string   `yaml:"primaryEmail"`
+	SecondaryEmail string   `yaml:"secondaryEmail,omitempty"`
 	Aliases        []string `yaml:"aliases,omitempty"`
 	Phones         []string `yaml:"phones,omitempty"`
-	RecoveryPhone  string   `yaml:"recovery_phone,omitempty"`
-	RecoveryEmail  string   `yaml:"recovery_email,omitempty"`
-	OrgUnitPath    string   `yaml:"org_unit_path,omitempty"`
+	RecoveryPhone  string   `yaml:"recoveryPhone,omitempty"`
+	RecoveryEmail  string   `yaml:"recoveryEmail,omitempty"`
+	OrgUnitPath    string   `yaml:"orgUnitPath,omitempty"`
 	Licenses       []string `yaml:"licenses,omitempty"`
-	Employee       Employee `yaml:"employee_info,omitempty"`
+	Employee       Employee `yaml:"employeeInfo,omitempty"`
 	Location       Location `yaml:"location,omitempty"`
 	Address        string   `yaml:"addresses,omitempty"`
 }
@@ -39,29 +39,29 @@ type User struct {
 type Location struct {
 	Building     string `yaml:"building,omitempty"`
 	Floor        string `yaml:"floor,omitempty"`
-	FloorSection string `yaml:"floor_section,omitempty"`
+	FloorSection string `yaml:"floorSection,omitempty"`
 }
 
 type Employee struct {
-	EmployeeID   string `yaml:"employee_ID,omitempty"`
+	EmployeeID   string `yaml:"id,omitempty"`
 	Department   string `yaml:"department,omitempty"`
-	JobTitle     string `yaml:"job_title,omitempty"`
+	JobTitle     string `yaml:"jobTitle,omitempty"`
 	Type         string `yaml:"type,omitempty"`
-	CostCenter   string `yaml:"cost_center,omitempty"`
-	ManagerEmail string `yaml:"manager_email,omitempty"`
+	CostCenter   string `yaml:"costCenter,omitempty"`
+	ManagerEmail string `yaml:"managerEmail,omitempty"`
 }
 
 type Group struct {
 	Name                 string   `yaml:"name"`
 	Email                string   `yaml:"email"`
 	Description          string   `yaml:"description,omitempty"`
-	WhoCanContactOwner   string   `yaml:"who_can_contact_owner,omitempty"`
-	WhoCanViewMembership string   `yaml:"who_can_view_members,omitempty"`
-	WhoCanApproveMembers string   `yaml:"who_can_approve_members,omitempty"`
-	WhoCanPostMessage    string   `yaml:"who_can_post,omitempty"`
-	WhoCanJoin           string   `yaml:"who_can_join,omitempty"`
-	AllowExternalMembers bool     `yaml:"allow_external_members"`
-	IsArchived           bool     `yaml:"is_archived"`
+	WhoCanContactOwner   string   `yaml:"whoCanContactOwner,omitempty"`
+	WhoCanViewMembership string   `yaml:"whoCanViewMembers,omitempty"`
+	WhoCanApproveMembers string   `yaml:"whoCanApproveMembers,omitempty"`
+	WhoCanPostMessage    string   `yaml:"whoCanPostMessage,omitempty"`
+	WhoCanJoin           string   `yaml:"whoCanJoin,omitempty"`
+	AllowExternalMembers bool     `yaml:"allowExternalMembers"`
+	IsArchived           bool     `yaml:"isArchived"`
 	Members              []Member `yaml:"members,omitempty"`
 }
 
@@ -73,8 +73,8 @@ type Member struct {
 type OrgUnit struct {
 	Name              string `yaml:"name"`
 	Description       string `yaml:"description,omitempty"`
-	ParentOrgUnitPath string `yaml:"parent_org_unit_path,omitempty"`
-	BlockInheritance  bool   `yaml:"block_inheritance,omitempty"`
+	ParentOrgUnitPath string `yaml:"parentOrgUnitPath,omitempty"`
+	BlockInheritance  bool   `yaml:"blockInheritance,omitempty"`
 }
 
 func LoadFromFile(filename string) (*Config, error) {
