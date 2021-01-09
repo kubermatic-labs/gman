@@ -18,7 +18,7 @@ func ExportUsers(ctx context.Context, clientService *admin.Service, licensingSer
 		return err
 	}
 
-	cfg.Users = []config.UserConfig{}
+	cfg.Users = []config.User{}
 
 	// save to file
 	if len(users) == 0 {
@@ -53,7 +53,7 @@ func ExportGroups(ctx context.Context, clientService *admin.Service, groupServic
 	}
 	var members []*admin.Member
 
-	cfg.Groups = []config.GroupConfig{}
+	cfg.Groups = []config.Group{}
 
 	// save to file
 	if len(groups) == 0 {
@@ -92,7 +92,7 @@ func ExportOrgUnits(ctx context.Context, clientService *admin.Service, cfg *conf
 		return err
 	}
 
-	cfg.OrgUnits = []config.OrgUnitConfig{}
+	cfg.OrgUnits = []config.OrgUnit{}
 
 	// save to file
 	if len(orgUnits) == 0 {
@@ -101,7 +101,7 @@ func ExportOrgUnits(ctx context.Context, clientService *admin.Service, cfg *conf
 		for _, ou := range orgUnits {
 			log.Printf("  %s", ou.Name)
 
-			cfg.OrgUnits = append(cfg.OrgUnits, config.OrgUnitConfig{
+			cfg.OrgUnits = append(cfg.OrgUnits, config.OrgUnit{
 				Name:              ou.Name,
 				Description:       ou.Description,
 				ParentOrgUnitPath: ou.ParentOrgUnitPath,

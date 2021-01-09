@@ -8,6 +8,7 @@ import (
 
 	"github.com/kubermatic-labs/gman/pkg/config"
 	"github.com/kubermatic-labs/gman/pkg/glib"
+
 	admin "google.golang.org/api/admin/directory/v1"
 	"google.golang.org/api/groupssettings/v1"
 )
@@ -15,8 +16,8 @@ import (
 func SyncUsers(ctx context.Context, clientService *admin.Service, licensingService *glib.LicensingService, cfg *config.Config, confirm bool) error {
 	var (
 		usersToDelete []*admin.User
-		usersToCreate []config.UserConfig
-		usersToUpdate []config.UserConfig
+		usersToCreate []config.User
+		usersToUpdate []config.User
 	)
 
 	log.Println("⇄ Syncing users")
@@ -139,17 +140,17 @@ func SyncUsers(ctx context.Context, clientService *admin.Service, licensingServi
 // (Members array is not bounded to the Group object in the API)
 // helper to avoid global vars
 type groupUpdate struct {
-	groupToUpdate   config.GroupConfig
-	membersToAdd    []*config.MemberConfig
+	groupToUpdate   config.Group
+	membersToAdd    []*config.Member
 	membersToRemove []*admin.Member
-	membersToUpdate []*config.MemberConfig
+	membersToUpdate []*config.Member
 }
 
 // SyncGroups
 func SyncGroups(ctx context.Context, clientService *admin.Service, groupService *groupssettings.Service, cfg *config.Config, confirm bool) error {
 	var (
 		groupsToDelete []*admin.Group
-		groupsToCreate []config.GroupConfig
+		groupsToCreate []config.Group
 		groupsToUpdate []groupUpdate
 	)
 
@@ -315,9 +316,9 @@ func SyncGroups(ctx context.Context, clientService *admin.Service, groupService 
 	return nil
 }
 
-func SyncMembers(ctx context.Context, clientService *admin.Service, cfgGr *config.GroupConfig, curGr *admin.Group) ([]*config.MemberConfig, []*admin.Member, []*config.MemberConfig) {
-	var memToAdd []*config.MemberConfig
-	var memToUpdate []*config.MemberConfig
+func SyncMembers(ctx context.Context, clientService *admin.Service, cfgGr *config.Group, curGr *admin.Group) ([]*config.Member, []*admin.Member, []*config.Member) {
+	var memToAdd []*config.Member
+	var memToUpdate []*config.Member
 	var memToRemove []*admin.Member
 	currentMembers, _ := glib.GetListOfMembers(clientService, curGr)
 
@@ -358,8 +359,8 @@ func SyncMembers(ctx context.Context, clientService *admin.Service, cfgGr *confi
 func SyncOrgUnits(ctx context.Context, clientService *admin.Service, cfg *config.Config, confirm bool) error {
 	var (
 		ouToDelete []*admin.OrgUnit
-		ouToCreate []config.OrgUnitConfig
-		ouToUpdate []config.OrgUnitConfig
+		ouToCreate []config.OrgUnit
+		ouToUpdate []config.OrgUnit
 	)
 
 	log.Println("⇄ Syncing organizational units")

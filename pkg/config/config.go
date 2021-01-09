@@ -9,39 +9,40 @@ import (
 
 	"github.com/kubermatic-labs/gman/pkg/data"
 	"github.com/kubermatic-labs/gman/pkg/util"
+
 	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	Organization string          `yaml:"organization"`
-	OrgUnits     []OrgUnitConfig `yaml:"org_units,omitempty"`
-	Users        []UserConfig    `yaml:"users,omitempty"`
-	Groups       []GroupConfig   `yaml:"groups,omitempty"`
+	Organization string    `yaml:"organization"`
+	OrgUnits     []OrgUnit `yaml:"org_units,omitempty"`
+	Users        []User    `yaml:"users,omitempty"`
+	Groups       []Group   `yaml:"groups,omitempty"`
 }
 
-type UserConfig struct {
-	FirstName      string         `yaml:"given_name"`
-	LastName       string         `yaml:"family_name"`
-	PrimaryEmail   string         `yaml:"primary_email"`
-	SecondaryEmail string         `yaml:"secondary_email,omitempty"`
-	Aliases        []string       `yaml:"aliases,omitempty"`
-	Phones         []string       `yaml:"phones,omitempty"`
-	RecoveryPhone  string         `yaml:"recovery_phone,omitempty"`
-	RecoveryEmail  string         `yaml:"recovery_email,omitempty"`
-	OrgUnitPath    string         `yaml:"org_unit_path,omitempty"`
-	Licenses       []string       `yaml:"licenses,omitempty"`
-	Employee       EmployeeConfig `yaml:"employee_info,omitempty"`
-	Location       LocationConfig `yaml:"location,omitempty"`
-	Address        string         `yaml:"addresses,omitempty"`
+type User struct {
+	FirstName      string   `yaml:"given_name"`
+	LastName       string   `yaml:"family_name"`
+	PrimaryEmail   string   `yaml:"primary_email"`
+	SecondaryEmail string   `yaml:"secondary_email,omitempty"`
+	Aliases        []string `yaml:"aliases,omitempty"`
+	Phones         []string `yaml:"phones,omitempty"`
+	RecoveryPhone  string   `yaml:"recovery_phone,omitempty"`
+	RecoveryEmail  string   `yaml:"recovery_email,omitempty"`
+	OrgUnitPath    string   `yaml:"org_unit_path,omitempty"`
+	Licenses       []string `yaml:"licenses,omitempty"`
+	Employee       Employee `yaml:"employee_info,omitempty"`
+	Location       Location `yaml:"location,omitempty"`
+	Address        string   `yaml:"addresses,omitempty"`
 }
 
-type LocationConfig struct {
+type Location struct {
 	Building     string `yaml:"building,omitempty"`
 	Floor        string `yaml:"floor,omitempty"`
 	FloorSection string `yaml:"floor_section,omitempty"`
 }
 
-type EmployeeConfig struct {
+type Employee struct {
 	EmployeeID   string `yaml:"employee_ID,omitempty"`
 	Department   string `yaml:"department,omitempty"`
 	JobTitle     string `yaml:"job_title,omitempty"`
@@ -50,26 +51,26 @@ type EmployeeConfig struct {
 	ManagerEmail string `yaml:"manager_email,omitempty"`
 }
 
-type GroupConfig struct {
-	Name                 string         `yaml:"name"`
-	Email                string         `yaml:"email"`
-	Description          string         `yaml:"description,omitempty"`
-	WhoCanContactOwner   string         `yaml:"who_can_contact_owner,omitempty"`
-	WhoCanViewMembership string         `yaml:"who_can_view_members,omitempty"`
-	WhoCanApproveMembers string         `yaml:"who_can_approve_members,omitempty"`
-	WhoCanPostMessage    string         `yaml:"who_can_post,omitempty"`
-	WhoCanJoin           string         `yaml:"who_can_join,omitempty"`
-	AllowExternalMembers bool           `yaml:"allow_external_members"`
-	IsArchived           bool           `yaml:"is_archived"`
-	Members              []MemberConfig `yaml:"members,omitempty"`
+type Group struct {
+	Name                 string   `yaml:"name"`
+	Email                string   `yaml:"email"`
+	Description          string   `yaml:"description,omitempty"`
+	WhoCanContactOwner   string   `yaml:"who_can_contact_owner,omitempty"`
+	WhoCanViewMembership string   `yaml:"who_can_view_members,omitempty"`
+	WhoCanApproveMembers string   `yaml:"who_can_approve_members,omitempty"`
+	WhoCanPostMessage    string   `yaml:"who_can_post,omitempty"`
+	WhoCanJoin           string   `yaml:"who_can_join,omitempty"`
+	AllowExternalMembers bool     `yaml:"allow_external_members"`
+	IsArchived           bool     `yaml:"is_archived"`
+	Members              []Member `yaml:"members,omitempty"`
 }
 
-type MemberConfig struct {
+type Member struct {
 	Email string `yaml:"email"`
 	Role  string `yaml:"role,omitempty"`
 }
 
-type OrgUnitConfig struct {
+type OrgUnit struct {
 	Name              string `yaml:"name"`
 	Description       string `yaml:"description,omitempty"`
 	ParentOrgUnitPath string `yaml:"parent_org_unit_path,omitempty"`

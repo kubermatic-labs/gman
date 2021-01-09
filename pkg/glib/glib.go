@@ -150,7 +150,7 @@ func GetUserEmails(user *admin.User) (string, string) {
 }
 
 // CreateUser creates a new user in GSuite via their API
-func CreateUser(srv admin.Service, licensingSrv *LicensingService, user *config.UserConfig) error {
+func CreateUser(srv admin.Service, licensingSrv *LicensingService, user *config.User) error {
 	// generate a rand password
 	pass, err := password.Generate(20, 5, 5, false, false)
 	if err != nil {
@@ -188,7 +188,7 @@ func DeleteUser(srv admin.Service, user *admin.User) error {
 }
 
 // UpdateUser updates the remote user with config
-func UpdateUser(srv admin.Service, licensingSrv *LicensingService, user *config.UserConfig) error {
+func UpdateUser(srv admin.Service, licensingSrv *LicensingService, user *config.User) error {
 	updatedUser := createGSuiteUserFromConfig(srv, user)
 	_, err := srv.Users.Update(user.PrimaryEmail, updatedUser).Do()
 	if err != nil {
@@ -267,7 +267,7 @@ func HandleUserAliases(srv admin.Service, googleUser *admin.User, configAliases 
 }
 
 // createGSuiteUserFromConfig converts a ConfigUser to (GSuite) admin.User
-func createGSuiteUserFromConfig(srv admin.Service, user *config.UserConfig) *admin.User {
+func createGSuiteUserFromConfig(srv admin.Service, user *config.User) *admin.User {
 	googleUser := &admin.User{
 		Name: &admin.UserName{
 			GivenName:  user.FirstName,
@@ -317,7 +317,7 @@ func createGSuiteUserFromConfig(srv admin.Service, user *config.UserConfig) *adm
 		googleUser.Emails = workEm
 	}
 
-	if user.Employee != (config.EmployeeConfig{}) {
+	if user.Employee != (config.Employee{}) {
 		uOrg := []admin.UserOrganization{
 			{
 				Department:  user.Employee.Department,
@@ -350,7 +350,7 @@ func createGSuiteUserFromConfig(srv admin.Service, user *config.UserConfig) *adm
 		}
 	}
 
-	if user.Location != (config.LocationConfig{}) {
+	if user.Location != (config.Location{}) {
 		loc := []admin.UserLocation{
 			{
 				Area:         "desk",
@@ -367,11 +367,11 @@ func createGSuiteUserFromConfig(srv admin.Service, user *config.UserConfig) *adm
 }
 
 // createConfigUserFromGSuite converts a (GSuite) admin.User to ConfigUser
-func CreateConfigUserFromGSuite(googleUser *admin.User, userLicenses []data.License) config.UserConfig {
+func CreateConfigUserFromGSuite(googleUser *admin.User, userLicenses []data.License) config.User {
 	// get emails
 	primaryEmail, secondaryEmail := GetUserEmails(googleUser)
 
-	configUser := config.UserConfig{
+	configUser := config.User{
 		FirstName:      googleUser.Name.GivenName,
 		LastName:       googleUser.Name.FamilyName,
 		PrimaryEmail:   primaryEmail,
@@ -516,7 +516,7 @@ func GetSettingOfGroup(srv *groupssettings.Service, groupId string) (*groupssett
 }
 
 // CreateGroup creates a new group in GSuite via their API
-func CreateGroup(srv admin.Service, grSrv groupssettings.Service, group *config.GroupConfig) error {
+func CreateGroup(srv admin.Service, grSrv groupssettings.Service, group *config.Group) error {
 	newGroup, groupSettings := CreateGSuiteGroupFromConfig(group)
 	_, err := srv.Groups.Insert(newGroup).Do()
 	if err != nil {
@@ -546,7 +546,7 @@ func DeleteGroup(srv admin.Service, group *admin.Group) error {
 }
 
 // UpdateGroup updates the remote group with config
-func UpdateGroup(srv admin.Service, grSrv groupssettings.Service, group *config.GroupConfig) error {
+func UpdateGroup(srv admin.Service, grSrv groupssettings.Service, group *config.Group) error {
 	updatedGroup, groupSettings := CreateGSuiteGroupFromConfig(group)
 	_, err := srv.Groups.Update(group.Email, updatedGroup).Do()
 	if err != nil {
@@ -562,7 +562,7 @@ func UpdateGroup(srv admin.Service, grSrv groupssettings.Service, group *config.
 }
 
 // createGSuiteGroupFromConfig converts a ConfigGroup to (GSuite) admin.Group
-func CreateGSuiteGroupFromConfig(group *config.GroupConfig) (*admin.Group, *groupssettings.Groups) {
+func CreateGSuiteGroupFromConfig(group *config.Group) (*admin.Group, *groupssettings.Groups) {
 	googleGroup := &admin.Group{
 		Name:  group.Name,
 		Email: group.Email,
@@ -585,17 +585,17 @@ func CreateGSuiteGroupFromConfig(group *config.GroupConfig) (*admin.Group, *grou
 	return googleGroup, groupSettings
 }
 
-func CreateConfigGroupFromGSuite(googleGroup *admin.Group, members []*admin.Member, gSettings *groupssettings.Groups) (config.GroupConfig, error) {
+func CreateConfigGroupFromGSuite(googleGroup *admin.Group, members []*admin.Member, gSettings *groupssettings.Groups) (config.Group, error) {
 	boolAllowExternalMembers, err := strconv.ParseBool(gSettings.AllowExternalMembers)
 	if err != nil {
-		return config.GroupConfig{}, fmt.Errorf("could not parse 'AllowExternalMembers' value from string to bool: %v", err)
+		return config.Group{}, fmt.Errorf("could not parse 'AllowExternalMembers' value from string to bool: %v", err)
 	}
 	boolIsArchived, err := strconv.ParseBool(gSettings.IsArchived)
 	if err != nil {
-		return config.GroupConfig{}, fmt.Errorf("could not parse 'IsArchived' value from string to bool: %v", err)
+		return config.Group{}, fmt.Errorf("could not parse 'IsArchived' value from string to bool: %v", err)
 	}
 
-	configGroup := config.GroupConfig{
+	configGroup := config.Group{
 		Name:                 googleGroup.Name,
 		Email:                googleGroup.Email,
 		Description:          googleGroup.Description,
@@ -606,11 +606,11 @@ func CreateConfigGroupFromGSuite(googleGroup *admin.Group, members []*admin.Memb
 		WhoCanJoin:           gSettings.WhoCanJoin,
 		AllowExternalMembers: boolAllowExternalMembers,
 		IsArchived:           boolIsArchived,
-		Members:              []config.MemberConfig{},
+		Members:              []config.Member{},
 	}
 
 	for _, m := range members {
-		configGroup.Members = append(configGroup.Members, config.MemberConfig{
+		configGroup.Members = append(configGroup.Members, config.Member{
 			Email: m.Email,
 			Role:  m.Role,
 		})
@@ -648,7 +648,7 @@ func GetListOfMembers(srv *admin.Service, group *admin.Group) ([]*admin.Member, 
 }
 
 // AddNewMember adds a new member to a group in GSuite
-func AddNewMember(srv admin.Service, groupEmail string, member *config.MemberConfig) error {
+func AddNewMember(srv admin.Service, groupEmail string, member *config.Member) error {
 	newMember := createGSuiteGroupMemberFromConfig(member)
 	_, err := srv.Members.Insert(groupEmail, newMember).Do()
 	if err != nil {
@@ -667,7 +667,7 @@ func RemoveMember(srv admin.Service, groupEmail string, member *admin.Member) er
 }
 
 // MemberExists checks if member exists in group
-func MemberExists(srv admin.Service, group *admin.Group, member *config.MemberConfig) (bool, error) {
+func MemberExists(srv admin.Service, group *admin.Group, member *config.Member) (bool, error) {
 	exists, err := srv.Members.HasMember(group.Email, member.Email).Do()
 	if err != nil {
 		return false, fmt.Errorf("unable to check if member %s exists in a group %s: %v", member.Email, group.Name, err)
@@ -677,7 +677,7 @@ func MemberExists(srv admin.Service, group *admin.Group, member *config.MemberCo
 
 // UpdateMembership changes the role of the member
 // Update(groupKey string, memberKey string, member *Member)
-func UpdateMembership(srv admin.Service, groupEmail string, member *config.MemberConfig) error {
+func UpdateMembership(srv admin.Service, groupEmail string, member *config.Member) error {
 	newMember := createGSuiteGroupMemberFromConfig(member)
 	_, err := srv.Members.Update(groupEmail, member.Email, newMember).Do()
 	if err != nil {
@@ -687,7 +687,7 @@ func UpdateMembership(srv admin.Service, groupEmail string, member *config.Membe
 }
 
 // createGSuiteGroupMemberFromConfig converts a ConfigMember to (GSuite) admin.Member
-func createGSuiteGroupMemberFromConfig(member *config.MemberConfig) *admin.Member {
+func createGSuiteGroupMemberFromConfig(member *config.Member) *admin.Member {
 	googleMember := &admin.Member{
 		Email: member.Email,
 		Role:  member.Role,
@@ -710,7 +710,7 @@ func GetListOfOrgUnits(srv *admin.Service) ([]*admin.OrgUnit, error) {
 }
 
 // CreateOrgUnit creates a new org unit in GSuite via their API
-func CreateOrgUnit(srv admin.Service, ou *config.OrgUnitConfig) error {
+func CreateOrgUnit(srv admin.Service, ou *config.OrgUnit) error {
 	newOU := createGSuiteOUFromConfig(ou)
 	_, err := srv.Orgunits.Insert("my_customer", newOU).Do()
 	if err != nil {
@@ -730,7 +730,7 @@ func DeleteOrgUnit(srv admin.Service, ou *admin.OrgUnit) error {
 }
 
 // UpdateOrgUnit updates the remote org unit with config
-func UpdateOrgUnit(srv admin.Service, ou *config.OrgUnitConfig) error {
+func UpdateOrgUnit(srv admin.Service, ou *config.OrgUnit) error {
 	updatedOu := createGSuiteOUFromConfig(ou)
 
 	// to update, we need the org unit's ID or its path;
@@ -746,7 +746,7 @@ func UpdateOrgUnit(srv admin.Service, ou *config.OrgUnitConfig) error {
 }
 
 // createGSuiteOUFromConfig converts a OrgUnitConfig to (GSuite) admin.OrgUnit
-func createGSuiteOUFromConfig(ou *config.OrgUnitConfig) *admin.OrgUnit {
+func createGSuiteOUFromConfig(ou *config.OrgUnit) *admin.OrgUnit {
 	return &admin.OrgUnit{
 		Name:              ou.Name,
 		Description:       ou.Description,
