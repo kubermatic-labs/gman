@@ -2,117 +2,93 @@ package export
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"sort"
 
 	"github.com/kubermatic-labs/gman/pkg/config"
 	"github.com/kubermatic-labs/gman/pkg/glib"
-	admin "google.golang.org/api/admin/directory/v1"
-	groupssettings "google.golang.org/api/groupssettings/v1"
 )
 
-func ExportUsers(ctx context.Context, clientService *admin.Service, licensingService *glib.LicensingService, cfg *config.Config) error {
-	// get the users array
-	users, err := glib.GetListOfUsers(*clientService)
+func ExportOrgUnits(ctx context.Context, directorySrv *glib.DirectoryService) ([]config.OrgUnit, error) {
+	orgUnits, err := directorySrv.ListOrgUnits(ctx)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("failed to list org units: %v", err)
 	}
 
-	cfg.Users = []config.User{}
+	result := []config.OrgUnit{}
+	for _, ou := range orgUnits {
+		log.Printf("  %s", ou.Name)
 
-	// save to file
-	if len(users) == 0 {
-		log.Println("⚠ No users found.")
-	} else {
-		for _, u := range users {
-			log.Printf("  %s", u.PrimaryEmail)
-
-			// get user licenses
-			userLicenses, err := glib.GetUserLicenses(licensingService, u.PrimaryEmail)
-			if err != nil {
-				return err
-			}
-
-			usr := glib.CreateConfigUserFromGSuite(u, userLicenses)
-			cfg.Users = append(cfg.Users, usr)
-		}
-
-		sort.Slice(cfg.Users, func(i, j int) bool {
-			return cfg.Users[i].PrimaryEmail < cfg.Users[j].PrimaryEmail
+		result = append(result, config.OrgUnit{
+			Name:              ou.Name,
+			Description:       ou.Description,
+			ParentOrgUnitPath: ou.ParentOrgUnitPath,
+			BlockInheritance:  ou.BlockInheritance,
 		})
 	}
 
-	return nil
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Name < result[j].Name
+	})
+
+	return result, nil
 }
 
-func ExportGroups(ctx context.Context, clientService *admin.Service, groupService *groupssettings.Service, cfg *config.Config) error {
-	// get the groups array
-	groups, err := glib.GetListOfGroups(clientService)
+func ExportUsers(ctx context.Context, directorySrv *glib.DirectoryService, licensingSrv *glib.LicensingService, licenseStatus *glib.LicenseStatus) ([]config.User, error) {
+	users, err := directorySrv.ListUsers(ctx)
 	if err != nil {
-		return err
-	}
-	var members []*admin.Member
-
-	cfg.Groups = []config.Group{}
-
-	// save to file
-	if len(groups) == 0 {
-		log.Println("⚠ No groups found.")
-	} else {
-		for _, g := range groups {
-			log.Printf("  %s", g.Name)
-
-			members, err = glib.GetListOfMembers(clientService, g)
-			if err != nil {
-				return err
-			}
-			gSettings, err := glib.GetSettingOfGroup(groupService, g.Email)
-			if err != nil {
-				return err
-			}
-			thisGroup, err := glib.CreateConfigGroupFromGSuite(g, members, gSettings)
-			if err != nil {
-				return err
-			}
-			cfg.Groups = append(cfg.Groups, thisGroup)
-		}
-
-		sort.Slice(cfg.Groups, func(i, j int) bool {
-			return cfg.Groups[i].Name < cfg.Groups[j].Name
-		})
+		return nil, fmt.Errorf("failed to list users: %v", err)
 	}
 
-	return nil
+	result := []config.User{}
+	for _, user := range users {
+		log.Printf("  %s", user.PrimaryEmail)
+
+		userLicenses := licenseStatus.GetLicensesForUser(user)
+		configUser := glib.CreateConfigUserFromGSuite(user, userLicenses)
+
+		result = append(result, configUser)
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].PrimaryEmail < result[j].PrimaryEmail
+	})
+
+	return result, nil
 }
 
-func ExportOrgUnits(ctx context.Context, clientService *admin.Service, cfg *config.Config) error {
-	// get the users array
-	orgUnits, err := glib.GetListOfOrgUnits(clientService)
+func ExportGroups(ctx context.Context, directorySrv *glib.DirectoryService, groupsSettingsSrv *glib.GroupsSettingsService) ([]config.Group, error) {
+	groups, err := directorySrv.ListGroups(ctx)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("failed to list groups: %v", err)
 	}
 
-	cfg.OrgUnits = []config.OrgUnit{}
+	result := []config.Group{}
+	for _, group := range groups {
+		log.Printf("  %s", group.Name)
 
-	// save to file
-	if len(orgUnits) == 0 {
-		log.Println("⚠ No OrgUnits found.")
-	} else {
-		for _, ou := range orgUnits {
-			log.Printf("  %s", ou.Name)
-
-			cfg.OrgUnits = append(cfg.OrgUnits, config.OrgUnit{
-				Name:              ou.Name,
-				Description:       ou.Description,
-				ParentOrgUnitPath: ou.ParentOrgUnitPath,
-				BlockInheritance:  ou.BlockInheritance,
-			})
+		settings, err := groupsSettingsSrv.GetSettings(ctx, group.Email)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get group settings: %v", err)
 		}
 
-		sort.Slice(cfg.OrgUnits, func(i, j int) bool {
-			return cfg.OrgUnits[i].Name < cfg.OrgUnits[j].Name
-		})
+		members, err := directorySrv.ListMembers(ctx, group)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list members: %v", err)
+		}
+
+		configGroup, err := glib.CreateConfigGroupFromGSuite(group, members, settings)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create config group: %v", err)
+		}
+
+		result = append(result, configGroup)
 	}
 
-	return nil
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Name < result[j].Name
+	})
+
+	return result, nil
 }

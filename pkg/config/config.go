@@ -7,10 +7,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kubermatic-labs/gman/pkg/data"
-	"github.com/kubermatic-labs/gman/pkg/util"
-
 	"gopkg.in/yaml.v3"
+
+	"github.com/kubermatic-labs/gman/pkg/util"
 )
 
 type Config struct {
@@ -181,7 +180,7 @@ func (c *Config) ValidateUsers() []error {
 		if len(user.Licenses) > 0 {
 			for _, license := range user.Licenses {
 				found := false
-				for _, permLicense := range data.GoogleLicenses {
+				for _, permLicense := range AllLicenses {
 					if license == permLicense.Name {
 						found = true
 					}

@@ -1,6 +1,6 @@
-# Configuration 
+# Configuration
 
-*Here can be found all the configuration details of Gman.*
+*Here can be found all the configuration details of GMan.*
 
 **Table of contents:**
 <!-- TOC -->
@@ -19,7 +19,7 @@
 
 ## Organizational Units
 
-The organizational units are specified as the entries of the `org_units` collection. 
+The organizational units are specified as the entries of the `org_units` collection.
 
 Each OU contains:
 
@@ -30,11 +30,11 @@ Each OU contains:
 | parentOrgUnitPath | string | The organizational unit's parent path. If the OU is directly under the parent organization, the entry should contain a single slash  `/`. If OU is nested, then, for example, `/students/mathematics` is the parent path for  `extended_math` organizational unit with full path  `/students/math/extended_math`. | yes |
 | org_unit_path  | string | The full path of the OU. It is derived from parentOrgUnitPath and organizational unit's name.   | yes |
 
-## Users 
+## Users
 
-The users are specified as the entries of the `users` collection. 
+The users are specified as the entries of the `users` collection.
 
-Each user contains: 
+Each user contains:
 
 | parameter  | type   | description  | required |
 |------------|--------|--------------|----------|
@@ -59,18 +59,18 @@ Each user contains:
 | location: floor_section |  string    | floor section   | no  |
 | addresses  |  string    | private address of the user    | no  |
 
-### User Licenses 
+### User Licenses
 
 The user's licenses are the Google products and related Stock Keeping Units (SKUs).
-The official list of all the available products can be found in [the official Google documentation](https://developers.google.com/admin-sdk/licensing/v1/how-tos/products). 
+The official list of all the available products can be found in [the official Google documentation](https://developers.google.com/admin-sdk/licensing/v1/how-tos/products).
 
-Gman supports the following names as the equivalents of the Google SKUs: 
+GMan supports the following names as the equivalents of the Google SKUs:
 
-| Google SKU Name (License) | Gman value | 
+| Google SKU Name (License) | GMan value |
 |---------------------------|------------|
 | G Suite Enterprise | GSuiteEnterprise |
 | G Suite Business | GSuiteBusiness |
-| G Suite Basic | GSuiteBasic 
+| G Suite Basic | GSuiteBasic
 | G Suite Essentials | GSuiteEssentials |
 | G Suite Lite | GSuiteLite |
 | Google Apps Message Security | GoogleAppsMessageSecurity |
@@ -92,13 +92,13 @@ Gman supports the following names as the equivalents of the Google SKUs:
 | Google Voice Standard | GoogleVoiceStandard |
 | Google Voice Premier | GoogleVoicePremier |
 
-Remark: *Cloud Identity Free Edition* is a site-wide SKU (applied at customer level), hence it cannot be managed by Gman as it is not assigned to individual users. 
+Remark: *Cloud Identity Free Edition* is a site-wide SKU (applied at customer level), hence it cannot be managed by GMan as it is not assigned to individual users.
 
 ## Groups
 
-The groups are specified as the entries of the `groups` collection. 
+The groups are specified as the entries of the `groups` collection.
 
-Each user contains: 
+Each user contains:
 
 | parameter | type | description | required |
 |-----------|------|-------------|----------|
@@ -111,68 +111,68 @@ Each user contains:
 |  who_can_post  | string | permissions to post messages; for possible values see below |  yes |
 |  who_can_join  | string | permissions to join group; for possible values see below |  yes |
 | allow_external_members | bool | identifies whether members external to your organization can join the group | yes |
-| is_archived | bool | allows the group content to be archived | yes | 
+| is_archived | bool | allows the group content to be archived | yes |
 | members | list of members | each member is specified by the email and the role; for the limits of numebr of users please refer to [the official Google documentation](https://support.google.com/a/answer/6099642?hl=en) | yes |
 | member: email | string | primary email of the user | yes |
 | member: role | string | role in the group of the user; possible values are: `MEMBER`, `OWNER` or `MANAGER` | yes |
 
 ### Group's Permissions
 
-The group permissions designate who can perform which actions in the group. 
+The group permissions designate who can perform which actions in the group.
 
-#### Contacting owner 
+#### Contacting owner
 
-Permission to contact owner of the group via web UI. Field name is `who_can_contact_owner`. The entered values are case sensitive. 
+Permission to contact owner of the group via web UI. Field name is `who_can_contact_owner`. The entered values are case sensitive.
 
 | possible value | description |
 |----------------|-------------|
 | ALL_IN_DOMAIN_CAN_CONTACT | all users in the domain |
 | ALL_MANAGERS_CAN_CONTACT | only managers of the group |
 | ALL_MEMBERS_CAN_CONTACT | only members of the group |
-| ANYONE_CAN_CONTACT | any Internet user  | 
+| ANYONE_CAN_CONTACT | any Internet user  |
 
 #### Viewing membership
 
-Permissions to view group members. Field name is `who_can_view_members`. The entered values are case sensitive. 
+Permissions to view group members. Field name is `who_can_view_members`. The entered values are case sensitive.
 
 | possible value | description |
 |----------------|-------------|
 | ALL_IN_DOMAIN_CAN_VIEW | all users in the domain |
 | ALL_MANAGERS_CAN_VIEW | only managers of the group |
 | ALL_MEMBERS_CAN_VIEW | only members of the group |
-| ANYONE_CAN_VIEW | anyone in the group | 
+| ANYONE_CAN_VIEW | anyone in the group |
 
 #### Approving membership
 
-Permissions to approve members who ask to join group. Field name is `who_can_approve_members`. The entered values are case sensitive. 
+Permissions to approve members who ask to join group. Field name is `who_can_approve_members`. The entered values are case sensitive.
 
 | possible value | description |
 |----------------|-------------|
 | ALL_OWNERS_CAN_APPROVE | only owners of the group |
 | ALL_MANAGERS_CAN_APPROVE | only managers of the group |
 | ALL_MEMBERS_CAN_APPROVE | only members of the group |
-| NONE_CAN_APPROVE | noone in the group | 
+| NONE_CAN_APPROVE | noone in the group |
 
 #### Posting messages
 
-Permissions to post messages in the group. Field name is `who_can_post`. The entered values are case sensitive. 
+Permissions to post messages in the group. Field name is `who_can_post`. The entered values are case sensitive.
 
 | possible value | description |
 |----------------|-------------|
 | NONE_CAN_POST | the group is disabled and archived; 'is_archived' must be set to true, otherwise will result in an error |
 | ALL_MANAGERS_CAN_POST | only managers and owners of the group |
 | ALL_MEMBERS_CAN_POST | only members of the group |
-| ALL_OWNERS_CAN_POST | only owners of the group | 
-| ALL_IN_DOMAIN_CAN_POST | anyone in the organization | 
+| ALL_OWNERS_CAN_POST | only owners of the group |
+| ALL_IN_DOMAIN_CAN_POST | anyone in the organization |
 | ANYONE_CAN_POST | any Internet user who can access your Google Groups service |
 
 #### Joining group
 
-Permissions to join the group. Field name is `who_can_join`. The entered values are case sensitive. 
+Permissions to join the group. Field name is `who_can_join`. The entered values are case sensitive.
 
 | possible value | description |
 |----------------|-------------|
 | ANYONE_CAN_JOIN | any Internet user who can access your Google Groups service |
 | ALL_IN_DOMAIN_CAN_JOIN |  anyone in the organization |
 | INVITED_CAN_JOIN | only invited candidates |
-| CAN_REQUEST_TO_JOIN | non-members can request an invitation to join | 
+| CAN_REQUEST_TO_JOIN | non-members can request an invitation to join |

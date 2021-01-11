@@ -1,4 +1,4 @@
-package data
+package config
 
 type License struct {
 	ProductId string
@@ -6,8 +6,8 @@ type License struct {
 	Name      string // used in yaml
 }
 
-// list of available Gsuite Licenses
-var GoogleLicenses = []License{
+// list of available GSuite Licenses
+var AllLicenses = []License{
 	{
 		ProductId: "Google-Apps",
 		SkuId:     "1010020020", // G Suite Enterprise

@@ -1,16 +1,16 @@
-# gman
+# GMan
 
-*gman links all GSuite accounts with the matching user-list storage in form of a YAML. It is based on [Aquayman](https://github.com/kubermatic-labs/aquayman).*
+*GMan links all GSuite accounts with the matching user-list storage in form of a YAML. It is based on [Aquayman](https://github.com/kubermatic-labs/aquayman).*
 
 **Features:**
 
-- declare your users, groups and org units in code (IaC) via config YAML, which will then be applied to GSuite organization
+- declare your users, groups and org units in code (infrastructure as code) via config YAML, which will then be applied to GSuite organization
 - export the current state as a starter config file
 - preview any action taken (validation)
 
 **Table of contents:**
 <!-- TOC -->
-- [gman](#gman)
+- [GMan](#gman)
   - [Installation](#installation)
   - [Configuration & Authentication](#configuration--authentication)
     - [Basics: Admin & Directory API](#basics-admin--directory-api)
@@ -45,7 +45,7 @@ Moreover, to access the extended settings of the groups, the **Groups Settings A
 
 ### Service account
 
-To authorize and to perform the operations on behalf of *Gman* a Service Account is required.
+To authorize and to perform the operations on behalf of *GMan* a Service Account is required.
 After creating one, it needs to be registered as an API client and have enabled this OAuth scopes:
 
 * https://www.googleapis.com/auth/admin.directory.user
@@ -66,7 +66,7 @@ Those scopes can be added in Admin console under *Security -> API Controls -> Do
 Furthermore, please, generate a Key (save the *.json* config) for this Service Account.
 For more detailed information, follow [the official instructions](https://developers.google.com/admin-sdk/directory/v1/guides/delegation#create_the_service_account_and_credentials).
 
-The Service Account private key must be provided to *Gman*. There are two ways to do so:
+The Service Account private key must be provided to *GMan*. There are two ways to do so:
 
 - set up environmental variable: `GMAN_SERVICE_ACCOUNT_KEY=<VALUE>`
 - start the application with specified flag `-private-key </path/to/your/privatekey.json>`
@@ -77,7 +77,7 @@ Only users with access to the Admin APIs can access the Admin SDK Directory API,
 
 In order to delegate domain-wide authority to your service account follow this [official guide](https://developers.google.com/admin-sdk/directory/v1/guides/delegation#delegate_domain-wide_authority_to_your_service_account).
 
-The impersonated email must be specified in *Gman*. There are two ways to do so:
+The impersonated email must be specified in *GMan*. There are two ways to do so:
 
 - set up environmental variable: `GMAN_IMPERSONATED_EMAIL=<VALUE>`
 - start the application with specified flag `-impersonated-email <value>`
@@ -87,7 +87,7 @@ The impersonated email must be specified in *Gman*. There are two ways to do so:
 All configuration of the users happens in a YAML file. See the [configuration documentation](/Configuration.md) for more information, available parameters and values, or refer to the annotated [config.example.yaml](/config.example.yaml) for the example usage.
 
 This file must be created beforehand with the minimal configuration, i.e. organization name specified.
-In order to get the initial config of the users that are already in place in your Organizaiton, run *Gman* with `-export` flag specified, so the depicted on your side YAML can be populated.
+In order to get the initial config of the users that are already in place in your Organizaiton, run *GMan* with `-export` flag specified, so the depicted on your side YAML can be populated.
 
 There are two ways to specify the path to the general configuration YAML file:
 
@@ -100,11 +100,11 @@ The configuration can be splitted as well in different files:
 - groups config file, specified by flag `-groups-config <value.yaml>`
 - organizational units config file, specified by flag `-orgunits-config <value.yaml>`
 
-Splitting the configuration allows as well to use *Gman* to manage only users, groups or organizational units, depending on the need.
+Splitting the configuration allows as well to use *GMan* to manage only users, groups or organizational units, depending on the need.
 
 ## Usage
 
-After the completion of the steps above, *Gman* can perform for you:
+After the completion of the steps above, *GMan* can perform for you:
 
 1. [exporting](#exporting) existing users in the domain;
 2. [validating](#validating) the config file;
@@ -113,7 +113,7 @@ After the completion of the steps above, *Gman* can perform for you:
 
 ### Exporting
 
-To get started, *Gman* can export your existing GSuite users into a configuration file.
+To get started, *GMan* can export your existing GSuite users into a configuration file.
 For this to work, prepare a fresh configuration file and put your organisation name in it.
 You can skip everything else:
 
@@ -121,7 +121,7 @@ You can skip everything else:
 organization: myorganization
 ```
 
-Now run *Gman* with the `-export` flag:
+Now run *GMan* with the `-export` flag:
 
 ```bash
 $ gman -config myconfig.yaml -export
@@ -153,7 +153,7 @@ users:
     secondary_email: gregor@privatedomain.com
     org_unit_path: /
 groups:
-  - name: Team Gman
+  - name: Team GMan
     email: teamgman@myorganization.com
     members:
       - email: josef@myorganization.com
@@ -178,7 +178,7 @@ It's possible to validate a configuration file for:
   - valid group members roles,
   - valid group members emails.
 
-In order to validate the file, run *Gman* with the `-validate` flag:
+In order to validate the file, run *GMan* with the `-validate` flag:
 
 ```bash
 $ gman -config myconfig.yaml -validate
@@ -186,7 +186,7 @@ $ gman -config myconfig.yaml -validate
 ```
 
 If the config is valid, the program exits with code 0, otherwise with a non-zero code.
-If this flag is specified, *Gman* performs **only** the config validation. Otherwise, validation takes place before every synchronization.
+If this flag is specified, *GMan* performs **only** the config validation. Otherwise, validation takes place before every synchronization.
 
 ### Synchronizing
 
@@ -213,7 +213,7 @@ $ gman -config myconfig.yaml
 
 ### Confirming synchronization
 
-When running *Gman* with the `-confirm` flag the magic of synchronization happens!
+When running *GMan* with the `-confirm` flag the magic of synchronization happens!
 
  - The users, groups and org units - that have been depicted to be present in config file, but not in GSuite - are automatically created:
 
@@ -281,7 +281,7 @@ Due to the fact that it is impossible to automate the send out of the login info
 
 ### API requests quota
 
-In order to retrieve information about licenses of each user, there are multiple API requests performed. This can result in hitting the maximum limit of allowed calls per 100 seconds. In order to avoid it, `Gman` waits after every Enterprise Licensing API request for 0.5 second. This delay can be changed by starting the application with specified flag `-throttle-requests <value>`, where value designates the waiting time in seconds.
+In order to retrieve information about licenses of each user, there are multiple API requests performed. This can result in hitting the maximum limit of allowed calls per 100 seconds. In order to avoid it, *GMan* waits after every Enterprise Licensing API request for 0.5 second. This delay can be changed by starting the application with specified flag `-throttle-requests <value>`, where value designates the waiting time in seconds.
 
 ## Changelog
 
