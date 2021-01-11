@@ -9,7 +9,6 @@ import (
 	"time"
 
 	directoryv1 "google.golang.org/api/admin/directory/v1"
-	licensingv1 "google.golang.org/api/licensing/v1"
 
 	"github.com/kubermatic-labs/gman/pkg/config"
 	"github.com/kubermatic-labs/gman/pkg/export"
@@ -92,17 +91,20 @@ func main() {
 		}
 	}
 
+	orgName := opt.groupsConfig.Organization
+	log.Printf("Working with organization %q…", orgName)
+
 	// create glib services
 	ctx := context.Background()
 	readonly := opt.exportAction || !opt.confirm
 	scopes := getScopes(readonly)
 
-	directorySrv, err := glib.NewDirectoryService(ctx, opt.clientSecretFile, opt.impersonatedUserEmail, opt.throttleRequests, scopes...)
+	directorySrv, err := glib.NewDirectoryService(ctx, orgName, opt.clientSecretFile, opt.impersonatedUserEmail, opt.throttleRequests, scopes...)
 	if err != nil {
 		log.Fatalf("⚠ Failed to create GSuite Directory API client: %v", err)
 	}
 
-	licensingSrv, err := glib.NewLicensingService(ctx, opt.clientSecretFile, opt.impersonatedUserEmail, opt.throttleRequests, config.AllLicenses)
+	licensingSrv, err := glib.NewLicensingService(ctx, orgName, opt.clientSecretFile, opt.impersonatedUserEmail, opt.throttleRequests, config.AllLicenses)
 	if err != nil {
 		log.Fatalf("⚠ Failed to create GSuite Licensing API client: %v", err)
 	}
@@ -113,8 +115,6 @@ func main() {
 	}
 
 	// begin actual work
-	log.Printf("Working with organization %q…", opt.groupsConfig.Organization)
-
 	log.Println("► Fetching license status…")
 	opt.licenseStatus, err = licensingSrv.GetLicenseStatus(ctx)
 	if err != nil {
@@ -251,7 +251,6 @@ func getScopes(readonly bool) []string {
 			directoryv1.AdminDirectoryOrgunitReadonlyScope,
 			directoryv1.AdminDirectoryGroupMemberReadonlyScope,
 			directoryv1.AdminDirectoryResourceCalendarReadonlyScope,
-			licensingv1.AppsLicensingScope,
 		}
 	}
 
@@ -261,6 +260,5 @@ func getScopes(readonly bool) []string {
 		directoryv1.AdminDirectoryOrgunitScope,
 		directoryv1.AdminDirectoryGroupMemberScope,
 		directoryv1.AdminDirectoryResourceCalendarScope,
-		licensingv1.AppsLicensingScope,
 	}
 }

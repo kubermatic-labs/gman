@@ -19,13 +19,14 @@ import (
 type LicensingService struct {
 	*licensing.Service
 
-	licenses []config.License
-	delay    time.Duration
+	organization string
+	licenses     []config.License
+	delay        time.Duration
 }
 
 // NewLicensingService() creates a client for communicating with Google Licensing API,
 // returns a service object authorized to perform actions in Gsuite.
-func NewLicensingService(ctx context.Context, clientSecretFile string, impersonatedUserEmail string, delay time.Duration, licenses []config.License) (*LicensingService, error) {
+func NewLicensingService(ctx context.Context, organization string, clientSecretFile string, impersonatedUserEmail string, delay time.Duration, licenses []config.License) (*LicensingService, error) {
 	jsonCredentials, err := ioutil.ReadFile(clientSecretFile)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read json credentials: %v", err)
@@ -45,9 +46,10 @@ func NewLicensingService(ctx context.Context, clientSecretFile string, impersona
 	}
 
 	licenseService := &LicensingService{
-		Service:  srv,
-		licenses: licenses,
-		delay:    delay,
+		Service:      srv,
+		organization: organization,
+		licenses:     licenses,
+		delay:        delay,
 	}
 
 	return licenseService, nil
@@ -86,7 +88,10 @@ func (ls *LicensingService) LicenseUsages(ctx context.Context, license config.Li
 	token := ""
 
 	for {
-		request := ls.LicenseAssignments.ListForProduct(license.ProductId, "my_customer").PageToken(token).Context(ctx)
+		// This is the only request in this entire package that actually needs a concrete
+		// organization name instead of "my_customer"; on the other hand, using a concrete
+		// name anywhere else leads to HTTP 401 errors. Go figure.
+		request := ls.LicenseAssignments.ListForProduct(license.ProductId, ls.organization).PageToken(token).Context(ctx)
 
 		response, err := request.Do()
 		if err != nil {
