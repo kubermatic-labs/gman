@@ -22,49 +22,50 @@ func SyncUsers(
 ) error {
 	log.Println("⇄ Syncing users…")
 
-	currentUsers, err := directorySrv.ListUsers(ctx)
+	liveUsers, err := directorySrv.ListUsers(ctx)
 	if err != nil {
 		return err
 	}
 
-	currentEmails := sets.NewString()
+	liveEmails := sets.NewString()
 
-	for _, current := range currentUsers {
-		currentEmails.Insert(current.PrimaryEmail)
+	for _, liveUser := range liveUsers {
+		liveEmails.Insert(liveUser.PrimaryEmail)
 
 		found := false
 
-		for _, configured := range cfg.Users {
-			if configured.PrimaryEmail == current.PrimaryEmail {
+		for _, expectedUser := range cfg.Users {
+			if expectedUser.PrimaryEmail == liveUser.PrimaryEmail {
 				found = true
 
-				currentUserLicenses := licenseStatus.GetLicensesForUser(current)
+				currentUserLicenses := licenseStatus.GetLicensesForUser(liveUser)
 
-				currentAliases, err := directorySrv.GetUserAliases(ctx, &configured)
+				currentAliases, err := directorySrv.GetUserAliases(ctx, liveUser)
 				if err != nil {
 					return fmt.Errorf("failed to fetch aliases: %v", err)
 				}
 
-				if userUpToDate(configured, current, currentUserLicenses, currentAliases) {
+				if userUpToDate(expectedUser, liveUser, currentUserLicenses, currentAliases) {
 					// no update needed
-					log.Printf("  ✓ %s", configured.PrimaryEmail)
+					log.Printf("  ✓ %s", expectedUser.PrimaryEmail)
 				} else {
 					// update it
-					log.Printf("  ✎ %s", configured.PrimaryEmail)
+					log.Printf("  ✎ %s", expectedUser.PrimaryEmail)
 
-					updatedUser := current
+					updatedUser := liveUser
 					if confirm {
-						updatedUser, err = directorySrv.UpdateUser(ctx, &configured)
+						apiUser := config.ToGSuiteUser(&expectedUser)
+						updatedUser, err = directorySrv.UpdateUser(ctx, apiUser)
 						if err != nil {
 							return fmt.Errorf("failed to update user: %v", err)
 						}
 					}
 
-					if err := syncUserAliases(ctx, directorySrv, &configured, updatedUser, currentAliases, confirm); err != nil {
+					if err := syncUserAliases(ctx, directorySrv, &expectedUser, updatedUser, currentAliases, confirm); err != nil {
 						return fmt.Errorf("failed to sync aliases: %v", err)
 					}
 
-					if err := syncUserLicenses(ctx, licensingSrv, &configured, updatedUser, licenseStatus, confirm); err != nil {
+					if err := syncUserLicenses(ctx, licensingSrv, &expectedUser, updatedUser, licenseStatus, confirm); err != nil {
 						return fmt.Errorf("failed to sync licenses: %v", err)
 					}
 				}
@@ -74,34 +75,35 @@ func SyncUsers(
 		}
 
 		if !found {
-			log.Printf("  ✁ %s", current.PrimaryEmail)
+			log.Printf("  ✁ %s", liveUser.PrimaryEmail)
 
 			if confirm {
-				if err := directorySrv.DeleteUser(ctx, current); err != nil {
+				if err := directorySrv.DeleteUser(ctx, liveUser); err != nil {
 					return fmt.Errorf("failed to delete user: %v", err)
 				}
 			}
 		}
 	}
 
-	for _, configured := range cfg.Users {
-		if !currentEmails.Has(configured.PrimaryEmail) {
-			log.Printf("  + %s", configured.PrimaryEmail)
+	for _, expectedUser := range cfg.Users {
+		if !liveEmails.Has(expectedUser.PrimaryEmail) {
+			log.Printf("  + %s", expectedUser.PrimaryEmail)
 
 			var createdUser *directoryv1.User
 
 			if confirm {
-				createdUser, err = directorySrv.CreateUser(ctx, &configured)
+				apiUser := config.ToGSuiteUser(&expectedUser)
+				createdUser, err = directorySrv.CreateUser(ctx, apiUser)
 				if err != nil {
 					return fmt.Errorf("failed to create user: %v", err)
 				}
 			}
 
-			if err := syncUserAliases(ctx, directorySrv, &configured, createdUser, nil, confirm); err != nil {
+			if err := syncUserAliases(ctx, directorySrv, &expectedUser, createdUser, nil, confirm); err != nil {
 				return fmt.Errorf("failed to sync aliases: %v", err)
 			}
 
-			if err := syncUserLicenses(ctx, licensingSrv, &configured, createdUser, licenseStatus, confirm); err != nil {
+			if err := syncUserLicenses(ctx, licensingSrv, &expectedUser, createdUser, licenseStatus, confirm); err != nil {
 				return fmt.Errorf("failed to sync licenses: %v", err)
 			}
 		}
@@ -113,32 +115,32 @@ func SyncUsers(
 func syncUserAliases(
 	ctx context.Context,
 	directorySrv *glib.DirectoryService,
-	configuredUser *config.User,
+	expectedUser *config.User,
 	liveUser *directoryv1.User,
 	liveAliases []string,
 	confirm bool,
 ) error {
-	configuredAliases := sets.NewString(configuredUser.Aliases...)
+	expectedAliases := sets.NewString(expectedUser.Aliases...)
 	liveAliasesSet := sets.NewString(liveAliases...)
 
 	for _, liveAlias := range liveAliases {
-		if !configuredAliases.Has(liveAlias) {
+		if !expectedAliases.Has(liveAlias) {
 			log.Printf("    - alias %s", liveAlias)
 
 			if confirm {
-				if err := directorySrv.DeleteUserAlias(ctx, configuredUser, liveAlias); err != nil {
+				if err := directorySrv.DeleteUserAlias(ctx, liveUser, liveAlias); err != nil {
 					return fmt.Errorf("unable to delete alias: %v", err)
 				}
 			}
 		}
 	}
 
-	for _, configuredAlias := range configuredAliases.List() {
-		if !liveAliasesSet.Has(configuredAlias) {
-			log.Printf("    + alias %s", configuredAlias)
+	for _, expectedAlias := range expectedAliases.List() {
+		if !liveAliasesSet.Has(expectedAlias) {
+			log.Printf("    + alias %s", expectedAlias)
 
 			if confirm {
-				if err := directorySrv.CreateUserAlias(ctx, configuredUser, configuredAlias); err != nil {
+				if err := directorySrv.CreateUserAlias(ctx, liveUser, expectedAlias); err != nil {
 					return fmt.Errorf("unable to create alias: %v", err)
 				}
 			}

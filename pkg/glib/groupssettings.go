@@ -19,12 +19,11 @@ type GroupsSettingsService struct {
 	delay time.Duration
 }
 
-// NewGroupsSettingsService() creates a client for communicating with Google Groupssettings API,
-// returns a service object authorized to perform actions in Gsuite.
+// NewGroupsSettingsService() creates a client for communicating with Google Groupssettings API.
 func NewGroupsSettingsService(ctx context.Context, clientSecretFile string, impersonatedUserEmail string, delay time.Duration) (*GroupsSettingsService, error) {
 	jsonCredentials, err := ioutil.ReadFile(clientSecretFile)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read json credentials (clientSecretFile): %v", err)
+		return nil, fmt.Errorf("unable to read JSON credentials: %v", err)
 	}
 
 	config, err := google.JWTConfigFromJSON(jsonCredentials, groupssettingsv1.AppsGroupsSettingsScope)

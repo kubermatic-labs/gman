@@ -35,12 +35,12 @@ func sliceContainsLicense(licenses []config.License, identifier string) bool {
 func syncUserLicenses(
 	ctx context.Context,
 	licenseSrv *glib.LicensingService,
-	configuredUser *config.User,
+	expectedUser *config.User,
 	liveUser *directoryv1.User,
 	licenseStatus *glib.LicenseStatus,
 	confirm bool,
 ) error {
-	expectedLicenses := configuredUser.Licenses
+	expectedLicenses := expectedUser.Licenses
 	liveLicenses := []config.License{}
 
 	// in dry-run mode, there can be cases where there is no live user yet
@@ -48,21 +48,21 @@ func syncUserLicenses(
 		liveLicenses = licenseStatus.GetLicensesForUser(liveUser)
 	}
 
-	for _, license := range liveLicenses {
-		if !userHasLicense(configuredUser, license) {
-			log.Printf("    - license %s", license.Name)
+	for _, liveLicense := range liveLicenses {
+		if !userHasLicense(expectedUser, liveLicense) {
+			log.Printf("    - license %s", liveLicense.Name)
 
 			if confirm {
-				if err := licenseSrv.UnassignLicense(ctx, liveUser, license); err != nil {
+				if err := licenseSrv.UnassignLicense(ctx, liveUser, liveLicense); err != nil {
 					return fmt.Errorf("unable to assign license: %v", err)
 				}
 			}
 		}
 	}
 
-	for _, identifier := range expectedLicenses {
-		if !sliceContainsLicense(liveLicenses, identifier) {
-			license := licenseStatus.GetLicense(identifier)
+	for _, expectedLicense := range expectedLicenses {
+		if !sliceContainsLicense(liveLicenses, expectedLicense) {
+			license := licenseStatus.GetLicense(expectedLicense)
 			log.Printf("    + license %s", license.Name)
 
 			if confirm {

@@ -19,32 +19,32 @@ func SyncOrgUnits(
 ) error {
 	log.Println("⇄ Syncing organizational units…")
 
-	currentUnits, err := directorySrv.ListOrgUnits(ctx)
+	liveOrgUnits, err := directorySrv.ListOrgUnits(ctx)
 	if err != nil {
 		return err
 	}
 
-	currentNames := sets.NewString()
+	liveNames := sets.NewString()
 
-	for _, current := range currentUnits {
-		currentNames.Insert(current.Name)
+	for _, liveOrgUnit := range liveOrgUnits {
+		liveNames.Insert(liveOrgUnit.Name)
 
 		found := false
 
-		for _, configured := range cfg.OrgUnits {
-			if configured.Name == current.Name {
+		for _, expectedOrgUnit := range cfg.OrgUnits {
+			if expectedOrgUnit.Name == liveOrgUnit.Name {
 				found = true
 
-				if orgUnitUpToDate(configured, current) {
+				if orgUnitUpToDate(expectedOrgUnit, liveOrgUnit) {
 					// no update needed
-					log.Printf("  ✓ %s", configured.Name)
+					log.Printf("  ✓ %s", expectedOrgUnit.Name)
 				} else {
 					// update it
-					log.Printf("  ✎ %s", configured.Name)
+					log.Printf("  ✎ %s", expectedOrgUnit.Name)
 
 					if confirm {
-						err := directorySrv.UpdateOrgUnit(ctx, &configured)
-						if err != nil {
+						apiOrgUnit := config.ToGSuiteOrgUnit(&expectedOrgUnit)
+						if err := directorySrv.UpdateOrgUnit(ctx, apiOrgUnit); err != nil {
 							return fmt.Errorf("failed to update org unit: %v", err)
 						}
 					}
@@ -55,10 +55,10 @@ func SyncOrgUnits(
 		}
 
 		if !found {
-			log.Printf("  ✁ %s", current.Name)
+			log.Printf("  ✁ %s", liveOrgUnit.Name)
 
 			if confirm {
-				err := directorySrv.DeleteOrgUnit(ctx, current)
+				err := directorySrv.DeleteOrgUnit(ctx, liveOrgUnit)
 				if err != nil {
 					return fmt.Errorf("failed to delete org unit: %v", err)
 				}
@@ -66,13 +66,13 @@ func SyncOrgUnits(
 		}
 	}
 
-	for _, configured := range cfg.OrgUnits {
-		if !currentNames.Has(configured.Name) {
-			log.Printf("  + %s", configured.Name)
+	for _, expectedOrgUnit := range cfg.OrgUnits {
+		if !liveNames.Has(expectedOrgUnit.Name) {
+			log.Printf("  + %s", expectedOrgUnit.Name)
 
 			if confirm {
-				err := directorySrv.CreateOrgUnit(ctx, &configured)
-				if err != nil {
+				apiOrgUnit := config.ToGSuiteOrgUnit(&expectedOrgUnit)
+				if err := directorySrv.CreateOrgUnit(ctx, apiOrgUnit); err != nil {
 					return fmt.Errorf("failed to create org unit: %v", err)
 				}
 			}

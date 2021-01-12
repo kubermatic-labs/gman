@@ -24,12 +24,11 @@ type LicensingService struct {
 	delay        time.Duration
 }
 
-// NewLicensingService() creates a client for communicating with Google Licensing API,
-// returns a service object authorized to perform actions in Gsuite.
+// NewLicensingService() creates a client for communicating with Google Licensing API.
 func NewLicensingService(ctx context.Context, organization string, clientSecretFile string, impersonatedUserEmail string, delay time.Duration, licenses []config.License) (*LicensingService, error) {
 	jsonCredentials, err := ioutil.ReadFile(clientSecretFile)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read json credentials: %v", err)
+		return nil, fmt.Errorf("unable to read JSON credentials: %v", err)
 	}
 
 	config, err := google.JWTConfigFromJSON(jsonCredentials, licensing.AppsLicensingScope)
@@ -60,29 +59,7 @@ func (ls *LicensingService) GetLicenses() ([]config.License, error) {
 	return ls.licenses, nil
 }
 
-// GetUserLicense returns a list of licenses of a user;
-// note that this is extremely slow due to API limitations, consider
-// listing all usages per license instead.
-func (ls *LicensingService) GetUserLicenses(ctx context.Context, user string) ([]config.License, error) {
-	var result []config.License
-
-	for _, license := range ls.licenses {
-		_, err := ls.LicenseAssignments.Get(license.ProductId, license.SkuId, user).Context(ctx).Do()
-
-		log.Println("TODO: delay next request")
-
-		if err != nil {
-			return nil, fmt.Errorf("unable to retrieve license in domain: %v", err)
-		}
-
-		result = append(result, license)
-	}
-
-	return result, nil
-}
-
-// LicenseUsages lists all user IDs assigned licenses for a specific
-// product SKU.
+// LicenseUsages lists all user IDs assigned licenses for a specific product SKU.
 func (ls *LicensingService) LicenseUsages(ctx context.Context, license config.License) ([]string, error) {
 	userIDs := []string{}
 	token := ""

@@ -41,6 +41,10 @@ type Location struct {
 	FloorSection string `yaml:"floorSection,omitempty"`
 }
 
+func (l *Location) Empty() bool {
+	return l.Building == "" && l.Floor == "" && l.FloorSection == ""
+}
+
 type Employee struct {
 	EmployeeID   string `yaml:"id,omitempty"`
 	Department   string `yaml:"department,omitempty"`
@@ -48,6 +52,10 @@ type Employee struct {
 	Type         string `yaml:"type,omitempty"`
 	CostCenter   string `yaml:"costCenter,omitempty"`
 	ManagerEmail string `yaml:"managerEmail,omitempty"`
+}
+
+func (e *Employee) Empty() bool {
+	return e.EmployeeID == "" && e.Department == "" && e.JobTitle == "" && e.Type == "" && e.CostCenter == "" && e.ManagerEmail == ""
 }
 
 type Group struct {

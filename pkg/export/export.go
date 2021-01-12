@@ -19,13 +19,7 @@ func ExportOrgUnits(ctx context.Context, directorySrv *glib.DirectoryService) ([
 	result := []config.OrgUnit{}
 	for _, ou := range orgUnits {
 		log.Printf("  %s", ou.Name)
-
-		result = append(result, config.OrgUnit{
-			Name:              ou.Name,
-			Description:       ou.Description,
-			ParentOrgUnitPath: ou.ParentOrgUnitPath,
-			BlockInheritance:  ou.BlockInheritance,
-		})
+		result = append(result, config.ToConfigOrgUnit(ou))
 	}
 
 	sort.Slice(result, func(i, j int) bool {
@@ -46,7 +40,11 @@ func ExportUsers(ctx context.Context, directorySrv *glib.DirectoryService, licen
 		log.Printf("  %s", user.PrimaryEmail)
 
 		userLicenses := licenseStatus.GetLicensesForUser(user)
-		configUser := glib.CreateConfigUserFromGSuite(user, userLicenses)
+
+		configUser, err := config.ToConfigUser(user, userLicenses)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert user: %v", err)
+		}
 
 		result = append(result, configUser)
 	}
@@ -78,7 +76,7 @@ func ExportGroups(ctx context.Context, directorySrv *glib.DirectoryService, grou
 			return nil, fmt.Errorf("failed to list members: %v", err)
 		}
 
-		configGroup, err := glib.CreateConfigGroupFromGSuite(group, members, settings)
+		configGroup, err := config.ToConfigGroup(group, settings, members)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create config group: %v", err)
 		}

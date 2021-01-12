@@ -19,12 +19,11 @@ type DirectoryService struct {
 	delay        time.Duration
 }
 
-// NewDirectoryService() creates a client for communicating with Google Directory API,
-// returns a service object authorized to perform actions in Gsuite.
+// NewDirectoryService() creates a client for communicating with Google Directory API.
 func NewDirectoryService(ctx context.Context, organization string, clientSecretFile string, impersonatedUserEmail string, delay time.Duration, scopes ...string) (*DirectoryService, error) {
 	jsonCredentials, err := ioutil.ReadFile(clientSecretFile)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read json credentials: %v", err)
+		return nil, fmt.Errorf("unable to read JSON credentials: %v", err)
 	}
 
 	config, err := google.JWTConfigFromJSON(jsonCredentials, scopes...)
