@@ -1,0 +1,132 @@
+package config
+
+import (
+	"strings"
+)
+
+func (c *Config) DefaultUsers() error {
+	for idx, user := range c.Users {
+		if user.OrgUnitPath == "" {
+			user.OrgUnitPath = "/"
+		}
+
+		c.Users[idx] = user
+	}
+
+	return nil
+}
+
+func (c *Config) UndefaultUsers() error {
+	for idx, user := range c.Users {
+		if user.OrgUnitPath == "/" {
+			user.OrgUnitPath = ""
+		}
+
+		c.Users[idx] = user
+	}
+
+	return nil
+}
+
+func (c *Config) DefaultGroups() error {
+	for idx, group := range c.Groups {
+		if group.WhoCanJoin == "" {
+			group.WhoCanJoin = GroupOptionWhoCanJoinDefault
+		}
+
+		if group.WhoCanPostMessage == "" {
+			group.WhoCanPostMessage = GroupOptionWhoCanPostMessageDefault
+		}
+
+		if group.WhoCanApproveMembers == "" {
+			group.WhoCanApproveMembers = GroupOptionWhoCanApproveMembersDefault
+		}
+
+		if group.WhoCanContactOwner == "" {
+			group.WhoCanContactOwner = GroupOptionWhoCanContactOwnerDefault
+		}
+
+		if group.WhoCanViewMembership == "" {
+			group.WhoCanViewMembership = GroupOptionWhoCanViewMembershipDefault
+		}
+
+		group.WhoCanJoin = strings.ToUpper(group.WhoCanJoin)
+		group.WhoCanPostMessage = strings.ToUpper(group.WhoCanPostMessage)
+		group.WhoCanApproveMembers = strings.ToUpper(group.WhoCanApproveMembers)
+		group.WhoCanContactOwner = strings.ToUpper(group.WhoCanContactOwner)
+		group.WhoCanViewMembership = strings.ToUpper(group.WhoCanViewMembership)
+
+		for n, member := range group.Members {
+			if member.Role == "" {
+				member.Role = MemberRoleMember
+			}
+
+			member.Role = strings.ToUpper(member.Role)
+			group.Members[n] = member
+		}
+
+		c.Groups[idx] = group
+	}
+
+	return nil
+}
+
+func (c *Config) UndefaultGroups() error {
+	for idx, group := range c.Groups {
+		if group.WhoCanJoin == GroupOptionWhoCanJoinDefault {
+			group.WhoCanJoin = ""
+		}
+
+		if group.WhoCanPostMessage == GroupOptionWhoCanPostMessageDefault {
+			group.WhoCanPostMessage = ""
+		}
+
+		if group.WhoCanApproveMembers == GroupOptionWhoCanApproveMembersDefault {
+			group.WhoCanApproveMembers = ""
+		}
+
+		if group.WhoCanContactOwner == GroupOptionWhoCanContactOwnerDefault {
+			group.WhoCanContactOwner = ""
+		}
+
+		if group.WhoCanViewMembership == GroupOptionWhoCanViewMembershipDefault {
+			group.WhoCanViewMembership = ""
+		}
+
+		for n, member := range group.Members {
+			if member.Role == MemberRoleMember {
+				member.Role = ""
+			}
+
+			group.Members[n] = member
+		}
+
+		c.Groups[idx] = group
+	}
+
+	return nil
+}
+
+func (c *Config) DefaultOrgUnits() error {
+	for idx, orgUnit := range c.OrgUnits {
+		if orgUnit.ParentOrgUnitPath == "" {
+			orgUnit.ParentOrgUnitPath = "/"
+		}
+
+		c.OrgUnits[idx] = orgUnit
+	}
+
+	return nil
+}
+
+func (c *Config) UndefaultOrgUnits() error {
+	for idx, orgUnit := range c.OrgUnits {
+		if orgUnit.ParentOrgUnitPath == "/" {
+			orgUnit.ParentOrgUnitPath = ""
+		}
+
+		c.OrgUnits[idx] = orgUnit
+	}
+
+	return nil
+}

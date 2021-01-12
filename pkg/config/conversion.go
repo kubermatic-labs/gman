@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/kubermatic-labs/gman/pkg/util"
 	directoryv1 "google.golang.org/api/admin/directory/v1"
 	groupssettingsv1 "google.golang.org/api/groupssettings/v1"
+
+	"github.com/kubermatic-labs/gman/pkg/util"
 )
 
 func ToGSuiteUser(user *User) *directoryv1.User {
