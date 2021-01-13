@@ -34,12 +34,14 @@ func SyncGroups(
 	groupsSettingsSrv *glib.GroupsSettingsService,
 	cfg *config.Config,
 	confirm bool,
-) error {
+) (bool, error) {
+	changes := false
+
 	log.Println("⇄ Syncing groups…")
 
 	liveGroups, err := directorySrv.ListGroups(ctx)
 	if err != nil {
-		return err
+		return changes, err
 	}
 
 	liveGroupEmails := sets.NewString()
@@ -55,12 +57,12 @@ func SyncGroups(
 
 				liveMembers, err := directorySrv.ListMembers(ctx, liveGroup)
 				if err != nil {
-					return fmt.Errorf("failed to fetch members: %v", err)
+					return changes, fmt.Errorf("failed to fetch members: %v", err)
 				}
 
 				liveSettings, err := groupsSettingsSrv.GetSettings(ctx, liveGroup.Email)
 				if err != nil {
-					return fmt.Errorf("failed to fetch group settings: %v", err)
+					return changes, fmt.Errorf("failed to fetch group settings: %v", err)
 				}
 
 				if groupUpToDate(expectedGroup, liveGroup, liveMembers, liveSettings) {
@@ -68,23 +70,24 @@ func SyncGroups(
 					log.Printf("  ✓ %s", expectedGroup.Email)
 				} else {
 					// update it
+					changes = true
 					log.Printf("  ✎ %s", expectedGroup.Email)
 
 					group, settings := config.ToGSuiteGroup(&expectedGroup)
 
 					if confirm {
-						group, err = directorySrv.UpdateGroup(ctx, group)
+						group, err = directorySrv.UpdateGroup(ctx, liveGroup, group)
 						if err != nil {
-							return fmt.Errorf("failed to update group: %v", err)
+							return changes, fmt.Errorf("failed to update group: %v", err)
 						}
 
 						if _, err := groupsSettingsSrv.UpdateSettings(ctx, group, settings); err != nil {
-							return fmt.Errorf("failed to update group settings: %v", err)
+							return changes, fmt.Errorf("failed to update group settings: %v", err)
 						}
 					}
 
 					if err := syncGroupMembers(ctx, directorySrv, &expectedGroup, group, liveMembers, confirm); err != nil {
-						return fmt.Errorf("failed to sync members: %v", err)
+						return changes, fmt.Errorf("failed to sync members: %v", err)
 					}
 				}
 
@@ -93,11 +96,12 @@ func SyncGroups(
 		}
 
 		if !found {
+			changes = true
 			log.Printf("  - %s", liveGroup.Email)
 
 			if confirm {
 				if err := directorySrv.DeleteGroup(ctx, liveGroup); err != nil {
-					return fmt.Errorf("failed to delete group: %v", err)
+					return changes, fmt.Errorf("failed to delete group: %v", err)
 				}
 			}
 		}
@@ -105,27 +109,29 @@ func SyncGroups(
 
 	for _, expectedGroup := range cfg.Groups {
 		if !liveGroupEmails.Has(expectedGroup.Email) {
-			group, settings := config.ToGSuiteGroup(&expectedGroup)
+			changes = true
 			log.Printf("  + %s", expectedGroup.Email)
+
+			group, settings := config.ToGSuiteGroup(&expectedGroup)
 
 			if confirm {
 				group, err = directorySrv.CreateGroup(ctx, group)
 				if err != nil {
-					return fmt.Errorf("failed to create group: %v", err)
+					return changes, fmt.Errorf("failed to create group: %v", err)
 				}
 
 				if _, err := groupsSettingsSrv.UpdateSettings(ctx, group, settings); err != nil {
-					return fmt.Errorf("failed to update group settings: %v", err)
+					return changes, fmt.Errorf("failed to update group settings: %v", err)
 				}
 			}
 
 			if err := syncGroupMembers(ctx, directorySrv, &expectedGroup, group, nil, confirm); err != nil {
-				return fmt.Errorf("failed to sync members: %v", err)
+				return changes, fmt.Errorf("failed to sync members: %v", err)
 			}
 		}
 	}
 
-	return nil
+	return changes, nil
 }
 
 func getConfiguredMember(group *config.Group, member *directoryv1.Member) *config.Member {
