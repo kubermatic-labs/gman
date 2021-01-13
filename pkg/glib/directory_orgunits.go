@@ -51,16 +51,8 @@ func (ds *DirectoryService) DeleteOrgUnit(ctx context.Context, orgUnit *director
 	return nil
 }
 
-func (ds *DirectoryService) UpdateOrgUnit(ctx context.Context, orgUnit *directoryv1.OrgUnit) error {
-	// to update, we need the org unit's ID or its path;
-	// we possibly have neither, but since the path is always just "{parent}/{orgunit-name}",
-	// we can construct it (there is no encoding/escaping in the paths, amazingly)
-	path := orgUnit.OrgUnitPath
-	if path == "" {
-		path = orgUnit.ParentOrgUnitPath + "/" + orgUnit.Name
-	}
-
-	if _, err := ds.Orgunits.Update("my_customer", path, orgUnit).Context(ctx).Do(); err != nil {
+func (ds *DirectoryService) UpdateOrgUnit(ctx context.Context, oldUnit *directoryv1.OrgUnit, newUnit *directoryv1.OrgUnit) error {
+	if _, err := ds.Orgunits.Update("my_customer", oldUnit.OrgUnitId, newUnit).Context(ctx).Do(); err != nil {
 		return fmt.Errorf("unable to update org unit: %v", err)
 	}
 

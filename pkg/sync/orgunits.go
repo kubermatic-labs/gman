@@ -59,8 +59,8 @@ func SyncOrgUnits(
 					log.Printf("  ✎ %s", expectedOrgUnit.Name)
 
 					if confirm {
-						apiOrgUnit := config.ToGSuiteOrgUnit(&expectedOrgUnit)
-						if err := directorySrv.UpdateOrgUnit(ctx, apiOrgUnit); err != nil {
+						newOrgUnit := config.ToGSuiteOrgUnit(&expectedOrgUnit)
+						if err := directorySrv.UpdateOrgUnit(ctx, liveOrgUnit, newOrgUnit); err != nil {
 							return fmt.Errorf("failed to update org unit: %v", err)
 						}
 					}
@@ -71,7 +71,7 @@ func SyncOrgUnits(
 		}
 
 		if !found {
-			log.Printf("  ✁ %s", liveOrgUnit.Name)
+			log.Printf("  - %s", liveOrgUnit.Name)
 
 			if confirm {
 				err := directorySrv.DeleteOrgUnit(ctx, liveOrgUnit)

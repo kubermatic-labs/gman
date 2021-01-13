@@ -93,7 +93,7 @@ func SyncGroups(
 		}
 
 		if !found {
-			log.Printf("  ✁ %s", liveGroup.Email)
+			log.Printf("  - %s", liveGroup.Email)
 
 			if confirm {
 				if err := directorySrv.DeleteGroup(ctx, liveGroup); err != nil {

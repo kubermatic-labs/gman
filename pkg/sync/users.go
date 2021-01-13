@@ -91,7 +91,7 @@ func SyncUsers(
 		}
 
 		if !found {
-			log.Printf("  ✁ %s", liveUser.PrimaryEmail)
+			log.Printf("  - %s", liveUser.PrimaryEmail)
 
 			if confirm {
 				if err := directorySrv.DeleteUser(ctx, liveUser); err != nil {
