@@ -18,6 +18,8 @@ package glib
 
 import (
 	"context"
+	"sort"
+	"strings"
 
 	directoryv1 "google.golang.org/api/admin/directory/v1"
 )
@@ -42,6 +44,10 @@ func (ds *DirectoryService) ListGroups(ctx context.Context) ([]*directoryv1.Grou
 			break
 		}
 	}
+
+	sort.SliceStable(groups, func(i, j int) bool {
+		return strings.ToLower(groups[i].Name) < strings.ToLower(groups[j].Name)
+	})
 
 	return groups, nil
 }
@@ -95,6 +101,10 @@ func (ds *DirectoryService) ListMembers(ctx context.Context, group *directoryv1.
 			break
 		}
 	}
+
+	sort.SliceStable(members, func(i, j int) bool {
+		return members[i].Email < members[j].Email
+	})
 
 	return members, nil
 }

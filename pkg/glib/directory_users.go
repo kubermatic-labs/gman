@@ -47,6 +47,10 @@ func (ds *DirectoryService) ListUsers(ctx context.Context) ([]*directoryv1.User,
 		}
 	}
 
+	sort.SliceStable(users, func(i, j int) bool {
+		return users[i].PrimaryEmail < users[j].PrimaryEmail
+	})
+
 	return users, nil
 }
 

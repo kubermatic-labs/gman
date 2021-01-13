@@ -18,6 +18,8 @@ package glib
 
 import (
 	"context"
+	"sort"
+	"strings"
 
 	directoryv1 "google.golang.org/api/admin/directory/v1"
 )
@@ -28,6 +30,10 @@ func (ds *DirectoryService) ListOrgUnits(ctx context.Context) ([]*directoryv1.Or
 	if err != nil {
 		return nil, err
 	}
+
+	sort.SliceStable(request.OrganizationUnits, func(i, j int) bool {
+		return strings.ToLower(request.OrganizationUnits[i].Name) < strings.ToLower(request.OrganizationUnits[j].Name)
+	})
 
 	return request.OrganizationUnits, nil
 }

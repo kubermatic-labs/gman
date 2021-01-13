@@ -32,12 +32,13 @@ func SyncOrgUnits(
 	directorySrv *glib.DirectoryService,
 	cfg *config.Config,
 	confirm bool,
-) error {
+) (bool, error) {
+	changes := false
 	log.Println("⇄ Syncing organizational units…")
 
 	liveOrgUnits, err := directorySrv.ListOrgUnits(ctx)
 	if err != nil {
-		return err
+		return changes, err
 	}
 
 	liveNames := sets.NewString()
@@ -56,12 +57,13 @@ func SyncOrgUnits(
 					log.Printf("  ✓ %s", expectedOrgUnit.Name)
 				} else {
 					// update it
+					changes = true
 					log.Printf("  ✎ %s", expectedOrgUnit.Name)
 
 					if confirm {
 						newOrgUnit := config.ToGSuiteOrgUnit(&expectedOrgUnit)
 						if err := directorySrv.UpdateOrgUnit(ctx, liveOrgUnit, newOrgUnit); err != nil {
-							return fmt.Errorf("failed to update org unit: %v", err)
+							return changes, fmt.Errorf("failed to update org unit: %v", err)
 						}
 					}
 				}
@@ -71,12 +73,13 @@ func SyncOrgUnits(
 		}
 
 		if !found {
+			changes = true
 			log.Printf("  - %s", liveOrgUnit.Name)
 
 			if confirm {
 				err := directorySrv.DeleteOrgUnit(ctx, liveOrgUnit)
 				if err != nil {
-					return fmt.Errorf("failed to delete org unit: %v", err)
+					return changes, fmt.Errorf("failed to delete org unit: %v", err)
 				}
 			}
 		}
@@ -84,16 +87,17 @@ func SyncOrgUnits(
 
 	for _, expectedOrgUnit := range cfg.OrgUnits {
 		if !liveNames.Has(expectedOrgUnit.Name) {
+			changes = true
 			log.Printf("  + %s", expectedOrgUnit.Name)
 
 			if confirm {
 				apiOrgUnit := config.ToGSuiteOrgUnit(&expectedOrgUnit)
 				if err := directorySrv.CreateOrgUnit(ctx, apiOrgUnit); err != nil {
-					return fmt.Errorf("failed to create org unit: %v", err)
+					return changes, fmt.Errorf("failed to create org unit: %v", err)
 				}
 			}
 		}
 	}
 
-	return nil
+	return changes, nil
 }

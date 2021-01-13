@@ -108,7 +108,11 @@ func main() {
 	}
 
 	orgName := opt.groupsConfig.Organization
-	log.Printf("Working with organization %q…", orgName)
+	log.Printf("☁ Working with organization %q…", orgName)
+
+	if !opt.exportAction && !opt.confirm {
+		log.Println("☞ This is a dry-run, no actual changes are being made.")
+	}
 
 	// create glib services
 	ctx := context.Background()
@@ -151,26 +155,24 @@ func syncAction(
 	licensingSrv *glib.LicensingService,
 	groupsSettingsSrv *glib.GroupsSettingsService,
 ) {
-	// log.Println("► Updating org units…")
-	// if err := sync.SyncOrgUnits(ctx, directorySrv, opt.orgUnitsConfig, opt.confirm); err != nil {
-	// 	log.Fatalf("⚠ Failed to sync: %v.", err)
-	// }
+	orgUnitChanges, err := sync.SyncOrgUnits(ctx, directorySrv, opt.orgUnitsConfig, opt.confirm)
+	if err != nil {
+		log.Fatalf("⚠ Failed to sync: %v.", err)
+	}
 
-	log.Println("► Updating users…")
 	userChanges, err := sync.SyncUsers(ctx, directorySrv, licensingSrv, opt.usersConfig, opt.licenseStatus, opt.confirm)
 	if err != nil {
 		log.Fatalf("⚠ Failed to sync: %v.", err)
 	}
 
-	// log.Println("► Updating groups…")
-	// groupChanges, err := sync.SyncGroups(ctx, directorySrv, groupsSettingsSrv, opt.groupsConfig, opt.confirm)
-	// if err != nil {
-	// 	log.Fatalf("⚠ Failed to sync: %v.", err)
-	// }
+	groupChanges, err := sync.SyncGroups(ctx, directorySrv, groupsSettingsSrv, opt.groupsConfig, opt.confirm)
+	if err != nil {
+		log.Fatalf("⚠ Failed to sync: %v.", err)
+	}
 
 	if opt.confirm {
 		log.Println("✓ Organization successfully synchronized.")
-	} else if userChanges /* || groupChanges */ {
+	} else if orgUnitChanges || userChanges || groupChanges {
 		log.Println("⚠ Run again with -confirm to apply the changes above.")
 	} else {
 		log.Println("✓ No changes necessary, organization is in sync.")

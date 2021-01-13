@@ -150,7 +150,7 @@ func (c *Config) UndefaultOrgUnits() error {
 
 func (c *Config) Sort() {
 	sort.SliceStable(c.OrgUnits, func(i, j int) bool {
-		return c.OrgUnits[i].Name < c.OrgUnits[j].Name
+		return strings.ToLower(c.OrgUnits[i].Name) < strings.ToLower(c.OrgUnits[j].Name)
 	})
 
 	sort.SliceStable(c.Users, func(i, j int) bool {
@@ -158,7 +158,7 @@ func (c *Config) Sort() {
 	})
 
 	sort.SliceStable(c.Groups, func(i, j int) bool {
-		return c.Groups[i].Name < c.Groups[j].Name
+		return strings.ToLower(c.Groups[i].Name) < strings.ToLower(c.Groups[j].Name)
 	})
 
 	for idx, user := range c.Users {
