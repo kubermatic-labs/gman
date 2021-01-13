@@ -86,8 +86,7 @@ The impersonated email must be specified in *GMan* using the `-impersonated-emai
 ### Config YAML
 
 All configuration happens in YAML file(s). See the [configuration documentation](/Configuration.md) for
-more information, available parameters and values, or refer to the annotated
-[config.example.yaml](/config.example.yaml) for the example usage.
+more information, available parameters and values.
 
 The configuration can happen all in a single file, or be split into distinct files for users, groups and
 org units. In all cases, the three flag `-users-config`, `-groups-config` and `-orgunits-config` must be
