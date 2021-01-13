@@ -227,7 +227,7 @@ email via Google API there are two possibilities to enable the first log in of t
 - manually send the login information email from admin console via _RESET PASSWORD_ option
   (follow instructions on [this official Google documentation](https://support.google.com/a/answer/33319?hl=en))
 - set up a password recovery for users (follow [this official Google documentation](https://support.google.com/a/answer/33382?p=accnt_recovery_users&visit_id=637279854011127407-389630162&rd=1&hl=en) to perform it).
-  This requires the `recovery_email` field to be set for the users. Hence, in the onboarding
+  This requires the `recoveryEmail` field to be set for the users. Hence, in the onboarding
   message the new users ought to be informed about their new GSuite email address and that on
   the first login, the _Forgot password?_ option should be chosen, so the verification code
   can be sent to to the private recovery email.
