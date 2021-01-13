@@ -2,7 +2,18 @@
 
 All notable changes to this module will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+## [v0.5.0] - 2021-01-xx
+
+* improved license handling speed
+* allow to omit default values
+* auotmatic sorting
+* removed `secondaryEmailAddress`, relying on aliases instead
+* list of possible licenses can be overwritten (insetad of relying
+  on the built-in licenses)
+* removed orgUnitPath from orgUnit configuration, as it is always
+  deduced from the name anyway and cannot be changed
+* user, group and org unit configuration files must now always be
+  given, but they can be the same file
 
 ## [v0.0.7] - 2021-01-06
 
