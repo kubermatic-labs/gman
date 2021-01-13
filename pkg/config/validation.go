@@ -22,7 +22,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kubermatic-labs/gman/pkg/util"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 // validateEmailFormat is a helper function that checks for existance of '@' and the length of the address
@@ -40,11 +40,12 @@ func (c *Config) ValidateUsers() []error {
 	}
 
 	// validate users
-	userEmails := []string{}
+	userEmails := sets.NewString()
 	for _, user := range c.Users {
-		if util.StringSliceContains(userEmails, user.PrimaryEmail) {
+		if userEmails.Has(user.PrimaryEmail) {
 			allErrors = append(allErrors, fmt.Errorf("duplicate user defined (user: %s)", user.PrimaryEmail))
 		}
+		userEmails.Insert(user.PrimaryEmail)
 
 		if user.PrimaryEmail == "" {
 			allErrors = append(allErrors, fmt.Errorf("primary email is required (user: %s)", user.LastName))
@@ -89,8 +90,6 @@ func (c *Config) ValidateUsers() []error {
 				}
 			}
 		}
-
-		userEmails = append(userEmails, user.PrimaryEmail)
 	}
 
 	return allErrors
@@ -105,11 +104,12 @@ func (c *Config) ValidateGroups() []error {
 	}
 
 	// validate groups
-	groupEmails := []string{}
+	groupEmails := sets.NewString()
 	for _, group := range c.Groups {
-		if util.StringSliceContains(groupEmails, group.Email) {
+		if groupEmails.Has(group.Email) {
 			allErrors = append(allErrors, fmt.Errorf("[group: %s] duplicate group email defined", group.Email))
 		}
+		groupEmails.Insert(group.Email)
 
 		if !validateEmailFormat(group.Email) {
 			allErrors = append(allErrors, fmt.Errorf("[group: %s] group email is not a valid email address", group.Email))
@@ -145,19 +145,14 @@ func (c *Config) ValidateGroups() []error {
 			}
 		}
 
-		memberEmails := []string{}
+		memberEmails := sets.NewString()
 		for _, member := range group.Members {
-			if util.StringSliceContains(memberEmails, member.Email) {
+			if memberEmails.Has(member.Email) {
 				allErrors = append(allErrors, fmt.Errorf("[group: %s] duplicate member %q defined", group.Name, member.Email))
 			}
+			memberEmails.Insert(member.Email)
 
-			// default role to Member
-			role := strings.ToUpper(member.Role)
-			if role == "" {
-				role = MemberRoleMember
-			}
-
-			if !allMemberRoles.Has(role) {
+			if !allMemberRoles.Has(member.Role) {
 				allErrors = append(allErrors, fmt.Errorf("[group: %s] invalid member role specified for %q, must be one of %v", group.Name, member.Email, allMemberRoles.List()))
 			}
 		}
@@ -175,11 +170,12 @@ func (c *Config) ValidateOrgUnits() []error {
 	}
 
 	// validate org units
-	unitNames := []string{}
+	unitNames := sets.NewString()
 	for _, orgUnit := range c.OrgUnits {
-		if util.StringSliceContains(unitNames, orgUnit.Name) {
+		if unitNames.Has(orgUnit.Name) {
 			allErrors = append(allErrors, fmt.Errorf("[org unit: %s] duplicate org unit defined", orgUnit.Name))
 		}
+		unitNames.Insert(orgUnit.Name)
 
 		if orgUnit.Name == "" {
 			allErrors = append(allErrors, fmt.Errorf("[org unit: %s] no name specified", orgUnit.Name))
@@ -189,6 +185,43 @@ func (c *Config) ValidateOrgUnits() []error {
 			allErrors = append(allErrors, fmt.Errorf("[org unit: %s] no parentOrgUnitPath specified", orgUnit.Name))
 		} else if !strings.HasPrefix(orgUnit.ParentOrgUnitPath, "/") {
 			allErrors = append(allErrors, fmt.Errorf("[org unit: %s] parentOrgUnitPath must start with a slash", orgUnit.Name))
+		}
+
+	}
+
+	return allErrors
+}
+
+func ValidateLicenses(licenses []License) []error {
+	var allErrors []error
+
+	// validate org units
+	licenseNames := sets.NewString()
+	licenseIdentifiers := sets.NewString()
+	for _, license := range licenses {
+		identifier := fmt.Sprintf("%s:%s", license.ProductId, license.SkuId)
+
+		if licenseNames.Has(license.Name) {
+			allErrors = append(allErrors, fmt.Errorf("[license: %s] duplicate license name defined", license.Name))
+		}
+
+		if licenseIdentifiers.Has(identifier) {
+			allErrors = append(allErrors, fmt.Errorf("[license: %s] duplicate license productId/skuId combination defined", license.Name))
+		}
+
+		licenseNames.Insert(license.Name)
+		licenseIdentifiers.Insert(identifier)
+
+		if license.Name == "" {
+			allErrors = append(allErrors, fmt.Errorf("[license: %s] no name specified", license.Name))
+		}
+
+		if license.ProductId == "" {
+			allErrors = append(allErrors, fmt.Errorf("[license: %s] no productId specified", license.Name))
+		}
+
+		if license.SkuId == "" {
+			allErrors = append(allErrors, fmt.Errorf("[license: %s] no skuId specified", license.Name))
 		}
 	}
 

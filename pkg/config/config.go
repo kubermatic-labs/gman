@@ -116,6 +116,7 @@ type Config struct {
 	OrgUnits     []OrgUnit `yaml:"orgUnits,omitempty"`
 	Users        []User    `yaml:"users,omitempty"`
 	Groups       []Group   `yaml:"groups,omitempty"`
+	Licenses     []License `yaml:"licenses,omitempty"`
 }
 
 type OrgUnit struct {

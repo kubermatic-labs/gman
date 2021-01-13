@@ -42,6 +42,7 @@ type options struct {
 	usersConfigFile       string
 	groupsConfigFile      string
 	orgUnitsConfigFile    string
+	licensesConfigFile    string
 	usersConfig           *config.Config
 	groupsConfig          *config.Config
 	orgUnitsConfig        *config.Config
@@ -53,6 +54,7 @@ type options struct {
 	clientSecretFile      string
 	impersonatedUserEmail string
 	throttleRequests      time.Duration
+	licenses              []config.License
 }
 
 func main() {
@@ -64,6 +66,7 @@ func main() {
 	flag.StringVar(&opt.usersConfigFile, "users-config", "", "path to the config.yaml that contains all users")
 	flag.StringVar(&opt.groupsConfigFile, "groups-config", "", "path to the config.yaml that contains all groups")
 	flag.StringVar(&opt.orgUnitsConfigFile, "orgunits-config", "", "path to the config.yaml that contains all organization units")
+	flag.StringVar(&opt.licensesConfigFile, "licenses-config", "", "(optional) instead of using the inbuilt license list, this is a config.yaml that contains the relevant licenses")
 	flag.StringVar(&opt.clientSecretFile, "private-key", "", "path to the Service Account secret file (.json) coontaining Keys used for authorization")
 	flag.StringVar(&opt.impersonatedUserEmail, "impersonated-email", "", "Admin email used to impersonate Service Account")
 	flag.BoolVar(&opt.versionAction, "version", false, "show the GMan version and exit")
@@ -92,6 +95,17 @@ func main() {
 	opt.orgUnitsConfig, err = config.LoadFromFile(opt.orgUnitsConfigFile)
 	if err != nil {
 		log.Fatalf("⚠ Failed to load org unit config from %q: %v.", opt.orgUnitsConfigFile, err)
+	}
+
+	// load licenses
+	opt.licenses = config.AllLicenses
+	if opt.licensesConfigFile != "" {
+		licensesConfig, err := config.LoadFromFile(opt.licensesConfigFile)
+		if err != nil {
+			log.Fatalf("⚠ Failed to load license config from %q: %v.", opt.licensesConfigFile, err)
+		}
+
+		opt.licenses = licensesConfig.Licenses
 	}
 
 	// validate config unless in export mode, where an incomplete configuration is expected
@@ -124,7 +138,7 @@ func main() {
 		log.Fatalf("⚠ Failed to create GSuite Directory API client: %v", err)
 	}
 
-	licensingSrv, err := glib.NewLicensingService(ctx, orgName, opt.clientSecretFile, opt.impersonatedUserEmail, opt.throttleRequests, config.AllLicenses)
+	licensingSrv, err := glib.NewLicensingService(ctx, orgName, opt.clientSecretFile, opt.impersonatedUserEmail, opt.throttleRequests, opt.licenses)
 	if err != nil {
 		log.Fatalf("⚠ Failed to create GSuite Licensing API client: %v", err)
 	}
@@ -237,6 +251,14 @@ func saveExport(filename string, patch func(*config.Config)) error {
 
 func validateAction(opt *options) bool {
 	valid := true
+
+	if errs := config.ValidateLicenses(opt.licenses); errs != nil {
+		log.Println("⚠ License configuration is invalid:")
+		for _, e := range errs {
+			log.Printf("  - %v", e)
+		}
+		valid = false
+	}
 
 	if errs := opt.orgUnitsConfig.ValidateOrgUnits(); errs != nil {
 		log.Println("⚠ Org unit configuration is invalid:")

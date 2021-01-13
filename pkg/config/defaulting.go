@@ -161,6 +161,9 @@ func (c *Config) Sort() {
 		return strings.ToLower(c.Groups[i].Name) < strings.ToLower(c.Groups[j].Name)
 	})
 
+	// do not sort licenses because they contain numerical values with units that sort badly,
+	// like "2TB" > "4GB"
+
 	for idx, user := range c.Users {
 		user.Sort()
 		c.Users[idx] = user

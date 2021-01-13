@@ -17,9 +17,9 @@ limitations under the License.
 package config
 
 type License struct {
-	ProductId string
-	SkuId     string
-	Name      string // used in yaml
+	Name      string `yaml:"name"`
+	ProductId string `yaml:"productId"`
+	SkuId     string `yaml:"skuId"`
 }
 
 // list of available GSuite Licenses

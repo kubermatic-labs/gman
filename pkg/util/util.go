@@ -21,16 +21,6 @@ import (
 	"fmt"
 )
 
-func StringSliceContains(s []string, needle string) bool {
-	for _, item := range s {
-		if item == needle {
-			return true
-		}
-	}
-
-	return false
-}
-
 func ConvertToStruct(data json.Marshaler, dst interface{}) error {
 	encoded, err := data.MarshalJSON()
 	if err != nil {
