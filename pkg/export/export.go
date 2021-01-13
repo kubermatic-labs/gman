@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"sort"
 
 	"github.com/kubermatic-labs/gman/pkg/config"
 	"github.com/kubermatic-labs/gman/pkg/glib"
@@ -37,10 +36,6 @@ func ExportOrgUnits(ctx context.Context, directorySrv *glib.DirectoryService) ([
 		log.Printf("  %s", ou.Name)
 		result = append(result, config.ToConfigOrgUnit(ou))
 	}
-
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].Name < result[j].Name
-	})
 
 	return result, nil
 }
@@ -64,10 +59,6 @@ func ExportUsers(ctx context.Context, directorySrv *glib.DirectoryService, licen
 
 		result = append(result, configUser)
 	}
-
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].PrimaryEmail < result[j].PrimaryEmail
-	})
 
 	return result, nil
 }
@@ -99,10 +90,6 @@ func ExportGroups(ctx context.Context, directorySrv *glib.DirectoryService, grou
 
 		result = append(result, configGroup)
 	}
-
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].Name < result[j].Name
-	})
 
 	return result, nil
 }

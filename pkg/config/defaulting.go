@@ -17,6 +17,7 @@ limitations under the License.
 package config
 
 import (
+	"sort"
 	"strings"
 )
 
@@ -145,4 +146,28 @@ func (c *Config) UndefaultOrgUnits() error {
 	}
 
 	return nil
+}
+
+func (c *Config) Sort() {
+	sort.SliceStable(c.OrgUnits, func(i, j int) bool {
+		return c.OrgUnits[i].Name < c.OrgUnits[j].Name
+	})
+
+	sort.SliceStable(c.Users, func(i, j int) bool {
+		return c.Users[i].PrimaryEmail < c.Users[j].PrimaryEmail
+	})
+
+	sort.SliceStable(c.Groups, func(i, j int) bool {
+		return c.Groups[i].Name < c.Groups[j].Name
+	})
+
+	for idx, user := range c.Users {
+		user.Sort()
+		c.Users[idx] = user
+	}
+
+	for idx, group := range c.Groups {
+		group.Sort()
+		c.Groups[idx] = group
+	}
 }

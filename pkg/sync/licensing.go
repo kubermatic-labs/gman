@@ -78,7 +78,7 @@ func syncUserLicenses(
 
 	for _, expectedLicense := range expectedLicenses {
 		if !sliceContainsLicense(liveLicenses, expectedLicense) {
-			license := licenseStatus.GetLicense(expectedLicense)
+			license := licenseSrv.GetLicenseByName(expectedLicense)
 			log.Printf("    + license %s", license.Name)
 
 			if confirm {

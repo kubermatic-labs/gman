@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package glib contains methods for interactions with GSuite API
 package glib
 
 import (

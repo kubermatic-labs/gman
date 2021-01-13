@@ -18,6 +18,7 @@ package config
 
 import (
 	"os"
+	"sort"
 
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -117,20 +118,32 @@ type Config struct {
 	Groups       []Group   `yaml:"groups,omitempty"`
 }
 
+type OrgUnit struct {
+	Name              string `yaml:"name"`
+	Description       string `yaml:"description,omitempty"`
+	ParentOrgUnitPath string `yaml:"parentOrgUnitPath,omitempty"`
+	BlockInheritance  bool   `yaml:"blockInheritance,omitempty"`
+}
+
 type User struct {
-	FirstName      string   `yaml:"givenName"`
-	LastName       string   `yaml:"familyName"`
-	PrimaryEmail   string   `yaml:"primaryEmail"`
-	SecondaryEmail string   `yaml:"secondaryEmail,omitempty"`
-	Aliases        []string `yaml:"aliases,omitempty"`
-	Phones         []string `yaml:"phones,omitempty"`
-	RecoveryPhone  string   `yaml:"recoveryPhone,omitempty"`
-	RecoveryEmail  string   `yaml:"recoveryEmail,omitempty"`
-	OrgUnitPath    string   `yaml:"orgUnitPath,omitempty"`
-	Licenses       []string `yaml:"licenses,omitempty"`
-	Employee       Employee `yaml:"employeeInfo,omitempty"`
-	Location       Location `yaml:"location,omitempty"`
-	Address        string   `yaml:"addresses,omitempty"`
+	FirstName     string   `yaml:"givenName"`
+	LastName      string   `yaml:"familyName"`
+	PrimaryEmail  string   `yaml:"primaryEmail"`
+	Aliases       []string `yaml:"aliases,omitempty"`
+	Phones        []string `yaml:"phones,omitempty"`
+	RecoveryPhone string   `yaml:"recoveryPhone,omitempty"`
+	RecoveryEmail string   `yaml:"recoveryEmail,omitempty"`
+	OrgUnitPath   string   `yaml:"orgUnitPath,omitempty"`
+	Licenses      []string `yaml:"licenses,omitempty"`
+	Employee      Employee `yaml:"employeeInfo,omitempty"`
+	Location      Location `yaml:"location,omitempty"`
+	Address       string   `yaml:"address,omitempty"`
+}
+
+func (u *User) Sort() {
+	sort.Strings(u.Aliases)
+	sort.Strings(u.Phones)
+	sort.Strings(u.Licenses)
 }
 
 type Location struct {
@@ -170,16 +183,15 @@ type Group struct {
 	Members              []Member `yaml:"members,omitempty"`
 }
 
+func (g *Group) Sort() {
+	sort.SliceStable(g.Members, func(i, j int) bool {
+		return g.Members[i].Email < g.Members[j].Email
+	})
+}
+
 type Member struct {
 	Email string `yaml:"email"`
 	Role  string `yaml:"role,omitempty"`
-}
-
-type OrgUnit struct {
-	Name              string `yaml:"name"`
-	Description       string `yaml:"description,omitempty"`
-	ParentOrgUnitPath string `yaml:"parentOrgUnitPath,omitempty"`
-	BlockInheritance  bool   `yaml:"blockInheritance,omitempty"`
 }
 
 func LoadFromFile(filename string) (*Config, error) {
@@ -199,6 +211,7 @@ func LoadFromFile(filename string) (*Config, error) {
 	config.DefaultOrgUnits()
 	config.DefaultUsers()
 	config.DefaultGroups()
+	config.Sort()
 
 	return config, nil
 }
@@ -217,6 +230,7 @@ func SaveToFile(config *Config, filename string) error {
 	config.UndefaultOrgUnits()
 	config.UndefaultUsers()
 	config.UndefaultGroups()
+	config.Sort()
 
 	if err := encoder.Encode(config); err != nil {
 		return err

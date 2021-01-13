@@ -48,21 +48,12 @@ func (c *Config) ValidateUsers() []error {
 
 		if user.PrimaryEmail == "" {
 			allErrors = append(allErrors, fmt.Errorf("primary email is required (user: %s)", user.LastName))
-		} else {
-			if user.PrimaryEmail == user.SecondaryEmail {
-				allErrors = append(allErrors, fmt.Errorf("user has defined the same primary and secondary email (user: %s)", user.PrimaryEmail))
-			}
-			if !validateEmailFormat(user.PrimaryEmail) {
-				allErrors = append(allErrors, fmt.Errorf("primary email is not a valid email-address (user: %s)", user.PrimaryEmail))
-			}
+		} else if !validateEmailFormat(user.PrimaryEmail) {
+			allErrors = append(allErrors, fmt.Errorf("primary email is not a valid email-address (user: %s)", user.PrimaryEmail))
 		}
 
 		if user.FirstName == "" || user.LastName == "" {
 			allErrors = append(allErrors, fmt.Errorf("given and family names are required (user: %s)", user.PrimaryEmail))
-		}
-
-		if user.SecondaryEmail != "" && !validateEmailFormat(user.SecondaryEmail) {
-			allErrors = append(allErrors, fmt.Errorf("secondary email is not a valid email-address (user: %s)", user.PrimaryEmail))
 		}
 
 		if user.RecoveryEmail != "" && !validateEmailFormat(user.RecoveryEmail) {

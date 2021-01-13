@@ -17,6 +17,8 @@ limitations under the License.
 package sync
 
 import (
+	"reflect"
+
 	directoryv1 "google.golang.org/api/admin/directory/v1"
 	"google.golang.org/api/groupssettings/v1"
 
@@ -24,34 +26,47 @@ import (
 )
 
 func orgUnitUpToDate(configured config.OrgUnit, live *directoryv1.OrgUnit) bool {
-	return configured.Description == live.Description &&
-		configured.ParentOrgUnitPath != live.ParentOrgUnitPath &&
-		configured.BlockInheritance != live.BlockInheritance
+	converted := config.ToConfigOrgUnit(live)
+
+	return reflect.DeepEqual(configured, converted)
 }
 
 func userUpToDate(configured config.User, live *directoryv1.User, liveLicenses []config.License, liveAliases []string) bool {
-	// currentUserConfig := glib.CreateConfigUserFromGSuite(currentUser, currentUserLicenses)
-	// if !reflect.DeepEqual(currentUserConfig, configured) {
-	// 	usersToUpdate = append(usersToUpdate, configured)
-	// }
+	converted, err := config.ToConfigUser(live, liveLicenses)
+	if err != nil {
+		return false
+	}
 
-	return configured.PrimaryEmail == live.PrimaryEmail
+	if converted.Aliases == nil {
+		converted.Aliases = []string{}
+	}
+
+	if configured.Aliases == nil {
+		configured.Aliases = []string{}
+	}
+
+	return reflect.DeepEqual(configured, converted)
 }
 
 func groupUpToDate(configured config.Group, live *directoryv1.Group, liveMembers []*directoryv1.Member, settings *groupssettings.Groups) bool {
-	// currentUserConfig := glib.CreateConfigUserFromGSuite(currentUser, currentUserLicenses)
-	// if !reflect.DeepEqual(currentUserConfig, configured) {
-	// 	usersToUpdate = append(usersToUpdate, configured)
-	// }
+	converted, err := config.ToConfigGroup(live, settings, liveMembers)
+	if err != nil {
+		return false
+	}
 
-	return configured.Email == live.Email
+	if converted.Members == nil {
+		converted.Members = []config.Member{}
+	}
+
+	if configured.Members == nil {
+		configured.Members = []config.Member{}
+	}
+
+	return reflect.DeepEqual(configured, converted)
 }
 
 func memberUpToDate(configured config.Member, live *directoryv1.Member) bool {
-	// currentUserConfig := glib.CreateConfigUserFromGSuite(currentUser, currentUserLicenses)
-	// if !reflect.DeepEqual(currentUserConfig, configured) {
-	// 	usersToUpdate = append(usersToUpdate, configured)
-	// }
+	converted := config.ToConfigGroupMember(live)
 
-	return configured.Email == live.Email
+	return reflect.DeepEqual(configured, converted)
 }

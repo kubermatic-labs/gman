@@ -14,12 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package glib contains methods for interactions with GSuite API
 package glib
 
 import (
 	"context"
-	"fmt"
 
 	directoryv1 "google.golang.org/api/admin/directory/v1"
 )
@@ -34,7 +32,7 @@ func (ds *DirectoryService) ListGroups(ctx context.Context) ([]*directoryv1.Grou
 
 		response, err := request.Do()
 		if err != nil {
-			return nil, fmt.Errorf("unable to retrieve list of groups in domain: %v", err)
+			return nil, err
 		}
 
 		groups = append(groups, response.Groups...)
@@ -87,7 +85,7 @@ func (ds *DirectoryService) ListMembers(ctx context.Context, group *directoryv1.
 
 		response, err := request.Do()
 		if err != nil {
-			return nil, fmt.Errorf("unable to retrieve list of members in group %s: %v", group.Name, err)
+			return nil, err
 		}
 
 		members = append(members, response.Members...)

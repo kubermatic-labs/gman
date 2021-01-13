@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package glib contains methods for interactions with GSuite API
 package glib
 
 import (
@@ -75,6 +74,16 @@ func (ls *LicensingService) GetLicenses() ([]config.License, error) {
 	return ls.licenses, nil
 }
 
+func (ls *LicensingService) GetLicenseByName(name string) *config.License {
+	for k, license := range ls.licenses {
+		if license.Name == name {
+			return &ls.licenses[k]
+		}
+	}
+
+	return nil
+}
+
 // LicenseUsages lists all user IDs assigned licenses for a specific product SKU.
 func (ls *LicensingService) LicenseUsages(ctx context.Context, license config.License) ([]string, error) {
 	userIDs := []string{}
@@ -88,7 +97,7 @@ func (ls *LicensingService) LicenseUsages(ctx context.Context, license config.Li
 
 		response, err := request.Do()
 		if err != nil {
-			return nil, fmt.Errorf("unable to retrieve list of users: %v", err)
+			return nil, err
 		}
 
 		for _, assignment := range response.Items {
@@ -108,7 +117,7 @@ func (ls *LicensingService) AssignLicense(ctx context.Context, user *directoryv1
 	op := licensing.LicenseAssignmentInsert{UserId: user.PrimaryEmail}
 
 	if _, err := ls.LicenseAssignments.Insert(license.ProductId, license.SkuId, &op).Context(ctx).Do(); err != nil {
-		return fmt.Errorf("unable to assign license: %v", err)
+		return err
 	}
 
 	return nil
@@ -116,7 +125,7 @@ func (ls *LicensingService) AssignLicense(ctx context.Context, user *directoryv1
 
 func (ls *LicensingService) UnassignLicense(ctx context.Context, user *directoryv1.User, license config.License) error {
 	if _, err := ls.LicenseAssignments.Delete(license.ProductId, license.SkuId, user.PrimaryEmail).Context(ctx).Do(); err != nil {
-		return fmt.Errorf("unable to unassign license: %v", err)
+		return err
 	}
 
 	return nil

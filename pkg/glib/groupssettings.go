@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package glib contains methods for interactions with GSuite API
 package glib
 
 import (
@@ -66,7 +65,7 @@ func NewGroupsSettingsService(ctx context.Context, clientSecretFile string, impe
 func (gs *GroupsSettingsService) GetSettings(ctx context.Context, groupId string) (*groupssettingsv1.Groups, error) {
 	request, err := gs.Groups.Get(groupId).Context(ctx).Do()
 	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve group settings: %v", err)
+		return nil, err
 	}
 
 	return request, nil
@@ -75,7 +74,7 @@ func (gs *GroupsSettingsService) GetSettings(ctx context.Context, groupId string
 func (gs *GroupsSettingsService) UpdateSettings(ctx context.Context, group *directoryv1.Group, settings *groupssettingsv1.Groups) (*groupssettingsv1.Groups, error) {
 	updatedSettings, err := gs.Groups.Update(group.Email, settings).Context(ctx).Do()
 	if err != nil {
-		return nil, fmt.Errorf("unable to update a group settings: %v", err)
+		return nil, err
 	}
 
 	return updatedSettings, nil

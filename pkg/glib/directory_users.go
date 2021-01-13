@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package glib contains methods for interactions with GSuite API
 package glib
 
 import (
@@ -37,7 +36,7 @@ func (ds *DirectoryService) ListUsers(ctx context.Context) ([]*directoryv1.User,
 
 		response, err := request.Do()
 		if err != nil {
-			return nil, fmt.Errorf("unable to retrieve list of users in domain: %v", err)
+			return nil, err
 		}
 
 		users = append(users, response.Users...)
@@ -72,16 +71,16 @@ func (ds *DirectoryService) CreateUser(ctx context.Context, user *directoryv1.Us
 func (ds *DirectoryService) DeleteUser(ctx context.Context, user *directoryv1.User) error {
 	err := ds.Users.Delete(user.PrimaryEmail).Context(ctx).Do()
 	if err != nil {
-		return fmt.Errorf("unable to delete user: %v", err)
+		return err
 	}
 
 	return nil
 }
 
-func (ds *DirectoryService) UpdateUser(ctx context.Context, user *directoryv1.User) (*directoryv1.User, error) {
-	updatedUser, err := ds.Users.Update(user.PrimaryEmail, user).Context(ctx).Do()
+func (ds *DirectoryService) UpdateUser(ctx context.Context, oldUser *directoryv1.User, newUser *directoryv1.User) (*directoryv1.User, error) {
+	updatedUser, err := ds.Users.Update(oldUser.PrimaryEmail, newUser).Context(ctx).Do()
 	if err != nil {
-		return nil, fmt.Errorf("unable to update user: %v", err)
+		return nil, err
 	}
 
 	return updatedUser, nil
@@ -121,7 +120,7 @@ func (ds *DirectoryService) CreateUserAlias(ctx context.Context, user *directory
 	}
 
 	if _, err := ds.Users.Aliases.Insert(user.PrimaryEmail, newAlias).Context(ctx).Do(); err != nil {
-		return fmt.Errorf("unable to create user alias: %v", err)
+		return err
 	}
 
 	return nil
@@ -129,7 +128,7 @@ func (ds *DirectoryService) CreateUserAlias(ctx context.Context, user *directory
 
 func (ds *DirectoryService) DeleteUserAlias(ctx context.Context, user *directoryv1.User, alias string) error {
 	if err := ds.Users.Aliases.Delete(user.PrimaryEmail, alias).Context(ctx).Do(); err != nil {
-		return fmt.Errorf("unable to delete user alias: %v", err)
+		return err
 	}
 
 	return nil

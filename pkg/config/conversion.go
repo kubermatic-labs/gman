@@ -36,6 +36,16 @@ func ToGSuiteUser(user *User) *directoryv1.User {
 		RecoveryEmail: user.RecoveryEmail,
 		RecoveryPhone: user.RecoveryPhone,
 		OrgUnitPath:   user.OrgUnitPath,
+
+		// set to empty list, because having them as "nil"
+		// will not cause proper updates, i.e. orphaned phone numbers
+		Phones:        []directoryv1.UserPhone{},
+		Addresses:     []directoryv1.UserAddress{},
+		Emails:        []directoryv1.UserEmail{},
+		Organizations: []directoryv1.UserOrganization{},
+		Relations:     []directoryv1.UserRelation{},
+		ExternalIds:   []directoryv1.UserExternalId{},
+		Locations:     []directoryv1.UserLocation{},
 	}
 
 	if len(user.Phones) > 0 {
@@ -55,15 +65,6 @@ func ToGSuiteUser(user *User) *directoryv1.User {
 			{
 				Formatted: user.Address,
 				Type:      "home",
-			},
-		}
-	}
-
-	if user.SecondaryEmail != "" {
-		gsuiteUser.Emails = []directoryv1.UserEmail{
-			{
-				Address: user.SecondaryEmail,
-				Type:    "work",
 			},
 		}
 	}
@@ -163,29 +164,22 @@ func ToConfigUser(gsuiteUser *directoryv1.User, userLicenses []License) (User, e
 		return User{}, fmt.Errorf("failed to decode user: %v", err)
 	}
 
-	primaryEmail, secondaryEmail := "", ""
+	primaryEmail := ""
 	for _, email := range apiUser.Emails {
 		if email.Primary {
 			primaryEmail = email.Address
-		} else {
-			secondaryEmail = email.Address
+			break
 		}
 	}
 
 	user := User{
-		FirstName:      gsuiteUser.Name.GivenName,
-		LastName:       gsuiteUser.Name.FamilyName,
-		PrimaryEmail:   primaryEmail,
-		SecondaryEmail: secondaryEmail,
-		OrgUnitPath:    gsuiteUser.OrgUnitPath,
-		RecoveryPhone:  gsuiteUser.RecoveryPhone,
-		RecoveryEmail:  gsuiteUser.RecoveryEmail,
-	}
-
-	if len(gsuiteUser.Aliases) > 0 {
-		for _, alias := range gsuiteUser.Aliases {
-			user.Aliases = append(user.Aliases, string(alias))
-		}
+		FirstName:     gsuiteUser.Name.GivenName,
+		LastName:      gsuiteUser.Name.FamilyName,
+		PrimaryEmail:  primaryEmail,
+		OrgUnitPath:   gsuiteUser.OrgUnitPath,
+		RecoveryPhone: gsuiteUser.RecoveryPhone,
+		RecoveryEmail: gsuiteUser.RecoveryEmail,
+		Aliases:       gsuiteUser.Aliases,
 	}
 
 	for _, phone := range apiUser.Phones {
@@ -232,6 +226,8 @@ func ToConfigUser(gsuiteUser *directoryv1.User, userLicenses []License) (User, e
 			user.Licenses = append(user.Licenses, userLicense.Name)
 		}
 	}
+
+	user.Sort()
 
 	return user, nil
 }
@@ -285,6 +281,8 @@ func ToConfigGroup(gsuiteGroup *directoryv1.Group, settings *groupssettingsv1.Gr
 	for _, m := range members {
 		group.Members = append(group.Members, ToConfigGroupMember(m))
 	}
+
+	group.Sort()
 
 	return group, nil
 }
