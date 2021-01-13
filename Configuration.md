@@ -87,7 +87,8 @@ The official list of all the available products can be found in [the official Go
 
 GMan has a list of licenses built-in, but this can be overwritten by running gman with
 `-licenses-config <file>`, which must be a YAML file that contains a list of licenses.
-Run GMan with `-licenses` to see the list of default licenses.
+Run GMan with `-licenses` to see the list of default licenses. If you also specify
+`-licenses-yaml`, you get an output that can be directly used as a config file.
 
 Remark: *Cloud Identity Free Edition* is a site-wide SKU (applied at customer level),
 hence it cannot be managed by GMan as it is not assigned to individual users.

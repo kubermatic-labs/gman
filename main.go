@@ -25,6 +25,7 @@ import (
 	"time"
 
 	directoryv1 "google.golang.org/api/admin/directory/v1"
+	"gopkg.in/yaml.v3"
 
 	"github.com/kubermatic-labs/gman/pkg/config"
 	"github.com/kubermatic-labs/gman/pkg/export"
@@ -51,6 +52,8 @@ type options struct {
 	confirm               bool
 	validateAction        bool
 	exportAction          bool
+	licensesAction        bool
+	licensesYAML          bool
 	clientSecretFile      string
 	impersonatedUserEmail string
 	throttleRequests      time.Duration
@@ -72,12 +75,19 @@ func main() {
 	flag.BoolVar(&opt.versionAction, "version", false, "show the GMan version and exit")
 	flag.BoolVar(&opt.validateAction, "validate", false, "validate the given configuration and then exit")
 	flag.BoolVar(&opt.exportAction, "export", false, "export the state and update the config files (-[user|groups|orgunits]-config flags)")
+	flag.BoolVar(&opt.licensesAction, "licenses", false, "print the builtin licenses and then exit")
+	flag.BoolVar(&opt.licensesYAML, "licenses-yaml", false, "print the builtin licenses as YAML (use together with -licenses)")
 	flag.BoolVar(&opt.confirm, "confirm", false, "must be set to actually perform any changes")
 	flag.DurationVar(&opt.throttleRequests, "throttle-requests", 500*time.Millisecond, "the delay between Enterprise Licensing API requests")
 	flag.Parse()
 
 	if opt.versionAction {
 		fmt.Printf("GMan %s (built at %s)\n", version, date)
+		return
+	}
+
+	if opt.licensesAction {
+		licenseAction(opt.licensesYAML)
 		return
 	}
 
@@ -159,6 +169,25 @@ func main() {
 		exportAction(ctx, &opt, directorySrv, licensingSrv, groupsSettingsSrv)
 	} else {
 		syncAction(ctx, &opt, directorySrv, licensingSrv, groupsSettingsSrv)
+	}
+}
+
+func licenseAction(asYAML bool) {
+	if asYAML {
+		output := struct {
+			Licenses []config.License `yaml:"licenses"`
+		}{
+			Licenses: config.AllLicenses,
+		}
+
+		encoder := yaml.NewEncoder(os.Stdout)
+		encoder.SetIndent(2)
+
+		encoder.Encode(output)
+	} else {
+		for _, license := range config.AllLicenses {
+			fmt.Printf("- %s (productID %q, SKU %q)\n", license.Name, license.ProductId, license.SkuId)
+		}
 	}
 }
 
