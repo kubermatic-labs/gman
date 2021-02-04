@@ -7,4 +7,5 @@ require (
 	golang.org/x/oauth2 v0.0.0-20201208152858-08078c50e5b5
 	google.golang.org/api v0.36.0
 	gopkg.in/yaml.v3 v3.0.0-20210105161348-2e78108cf5f8
+	k8s.io/apimachinery v0.20.1
 )
