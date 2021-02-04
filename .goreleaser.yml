@@ -28,9 +28,10 @@ archives:
   - id: gman
     format: zip
     files:
-      - README.md
+      - CHANGELOG.md
+      - Configuration.md
       - LICENSE
-      - config.example.yaml
+      - README.md
 
 release:
   prerelease: true

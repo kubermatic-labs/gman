@@ -2,7 +2,7 @@
 
 All notable changes to this module will be documented in this file.
 
-## [v0.5.0] - 2021-01-xx
+## [v0.5.0] - 2021-02-04
 
 * improved license handling speed
 * allow to omit default values
