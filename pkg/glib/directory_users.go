@@ -24,6 +24,7 @@ import (
 	password "github.com/sethvargo/go-password/password"
 	directoryv1 "google.golang.org/api/admin/directory/v1"
 
+	"github.com/kubermatic-labs/gman/pkg/config"
 	"github.com/kubermatic-labs/gman/pkg/util"
 )
 
@@ -32,7 +33,13 @@ func (ds *DirectoryService) ListUsers(ctx context.Context) ([]*directoryv1.User,
 	token := ""
 
 	for {
-		request := ds.Users.List().Customer("my_customer").OrderBy("email").PageToken(token).Context(ctx)
+		request := ds.Users.List().
+			Customer("my_customer").
+			OrderBy("email").
+			PageToken(token).
+			Projection("custom").
+			CustomFieldMask(config.SchemaName).
+			Context(ctx)
 
 		response, err := request.Do()
 		if err != nil {

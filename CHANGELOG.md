@@ -2,6 +2,10 @@
 
 All notable changes to this module will be documented in this file.
 
+## [v0.6.0] - 2021-03-01
+
+* allow configuring static passwords if `-insecure-passwords` is given
+
 ## [v0.5.1] - 2021-03-01
 
 * fix removing recovery phones/emails

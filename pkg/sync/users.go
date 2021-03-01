@@ -34,6 +34,7 @@ func SyncUsers(
 	licensingSrv *glib.LicensingService,
 	cfg *config.Config,
 	licenseStatus *glib.LicenseStatus,
+	enableInsecurePasswords bool,
 	confirm bool,
 ) (bool, error) {
 	changes := false
@@ -63,7 +64,10 @@ func SyncUsers(
 					return changes, fmt.Errorf("failed to fetch aliases: %v", err)
 				}
 
-				if userUpToDate(expectedUser, liveUser, currentUserLicenses, currentAliases) {
+				infoUpToDate := userUpToDate(expectedUser, liveUser, currentUserLicenses, currentAliases)
+				passwordUpToDate := !enableInsecurePasswords || passwordUpToDate(expectedUser, liveUser)
+
+				if infoUpToDate && passwordUpToDate {
 					// no update needed
 					log.Printf("  ✓ %s", expectedUser.PrimaryEmail)
 				} else {
@@ -73,7 +77,7 @@ func SyncUsers(
 
 					updatedUser := liveUser
 					if confirm {
-						apiUser := config.ToGSuiteUser(&expectedUser)
+						apiUser := config.ToGSuiteUser(&expectedUser, enableInsecurePasswords)
 						updatedUser, err = directorySrv.UpdateUser(ctx, liveUser, apiUser)
 						if err != nil {
 							return changes, fmt.Errorf("failed to update user: %v", err)
@@ -113,7 +117,7 @@ func SyncUsers(
 			var createdUser *directoryv1.User
 
 			if confirm {
-				apiUser := config.ToGSuiteUser(&expectedUser)
+				apiUser := config.ToGSuiteUser(&expectedUser, enableInsecurePasswords)
 				createdUser, err = directorySrv.CreateUser(ctx, apiUser)
 				if err != nil {
 					return changes, fmt.Errorf("failed to create user: %v", err)

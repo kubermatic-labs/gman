@@ -17,16 +17,36 @@ limitations under the License.
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 
 	directoryv1 "google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/googleapi"
 	groupssettingsv1 "google.golang.org/api/groupssettings/v1"
 
 	"github.com/kubermatic-labs/gman/pkg/util"
 )
 
-func ToGSuiteUser(user *User) *directoryv1.User {
+type CustomSchema struct {
+	PasswordHash string `json:"passwordHash"`
+}
+
+func GetUserSchema(user *directoryv1.User) *CustomSchema {
+	customFields, ok := user.CustomSchemas[SchemaName]
+	if !ok {
+		return nil
+	}
+
+	s := &CustomSchema{}
+	if err := json.Unmarshal(customFields, s); err != nil {
+		return nil
+	}
+
+	return s
+}
+
+func ToGSuiteUser(user *User, enableInsecurePasswords bool) *directoryv1.User {
 	gsuiteUser := &directoryv1.User{
 		Name: &directoryv1.UserName{
 			GivenName:  user.FirstName,
@@ -46,6 +66,7 @@ func ToGSuiteUser(user *User) *directoryv1.User {
 		Relations:     []directoryv1.UserRelation{},
 		ExternalIds:   []directoryv1.UserExternalId{},
 		Locations:     []directoryv1.UserLocation{},
+		CustomSchemas: map[string]googleapi.RawMessage{},
 	}
 
 	if len(user.Phones) > 0 {
@@ -110,6 +131,16 @@ func ToGSuiteUser(user *User) *directoryv1.User {
 				Type:         "desk",
 			},
 		}
+	}
+
+	if enableInsecurePasswords && user.Password != "" {
+		customData := CustomSchema{
+			PasswordHash: HashPassword(user.Password),
+		}
+
+		encoded, _ := json.Marshal(customData)
+		gsuiteUser.CustomSchemas[SchemaName] = encoded
+		gsuiteUser.Password = user.Password
 	}
 
 	return gsuiteUser

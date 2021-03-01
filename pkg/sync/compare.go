@@ -45,7 +45,29 @@ func userUpToDate(configured config.User, live *directoryv1.User, liveLicenses [
 		configured.Aliases = []string{}
 	}
 
+	// password changes are handled by passwordUpToDate()
+	converted.Password = configured.Password
+
 	return reflect.DeepEqual(configured, converted)
+}
+
+// passwordUpToDate checks if the live account's last password set
+// by GMan was what is configured in YAML. This is meant as a mechanism to
+// mass-reset accounts to a common, public password, e.g. for testing
+// or training accounts. For this reason GMan stores an unsalted hash
+// of the password as a custom field, with the hash purely being for
+// obfuscating it a bit.
+func passwordUpToDate(configured config.User, live *directoryv1.User) bool {
+	// no password configured, so we do not care at all about the
+	// state in GSuite; this is the norm for accounts managed by us
+	if configured.Password == "" {
+		return true
+	}
+
+	configuredHash := config.HashPassword(configured.Password)
+	liveSchema := config.GetUserSchema(live)
+
+	return liveSchema != nil && liveSchema.PasswordHash == configuredHash
 }
 
 func groupUpToDate(configured config.Group, live *directoryv1.Group, liveMembers []*directoryv1.Member, settings *groupssettings.Groups) bool {

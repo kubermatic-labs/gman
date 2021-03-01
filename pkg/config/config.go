@@ -17,11 +17,18 @@ limitations under the License.
 package config
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"os"
 	"sort"
 
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/util/sets"
+)
+
+const (
+	SchemaName              = "gman"
+	PasswordHashCustomField = "passwordHash"
 )
 
 const (
@@ -139,6 +146,7 @@ type User struct {
 	Employee      Employee `yaml:"employeeInfo,omitempty"`
 	Location      Location `yaml:"location,omitempty"`
 	Address       string   `yaml:"address,omitempty"`
+	Password      string   `yaml:"password,omitempty"`
 }
 
 func (u *User) Sort() {
@@ -238,4 +246,12 @@ func SaveToFile(config *Config, filename string) error {
 	}
 
 	return nil
+}
+
+// HashPassword returns an shortened hash for the given password;
+// the hash is not meant to validate password inputs, but only to
+// compare if the passwords have changed
+func HashPassword(password string) string {
+	checksum := sha256.Sum256([]byte(password))
+	return fmt.Sprintf("%x", checksum[:16])
 }

@@ -23,6 +23,7 @@
     - [Validating](#validating)
     - [Synchronizing](#synchronizing)
     - [Confirming synchronization](#confirming-synchronization)
+    - [Static Password](#static-passwords)
   - [Limitations](#limitations)
     - [Sending the login info email to the new users](#sending-the-login-info-email-to-the-new-users)
     - [API requests quota](#api-requests-quota)
@@ -63,6 +64,7 @@ After creating one, it needs to be registered as an API client and have enabled 
 * `https://www.googleapis.com/auth/admin.directory.group.member.readonly`
 * `https://www.googleapis.com/auth/admin.directory.resource.calendar`
 * `https://www.googleapis.com/auth/admin.directory.resource.calendar.readonly`
+* `https://www.googleapis.com/auth/admin.directory.userschema`
 * `https://www.googleapis.com/auth/apps.groups.settings`
 * `https://www.googleapis.com/auth/apps.licensing`
 
@@ -215,6 +217,43 @@ $ gman \
 ```
 
 Run the same command again with `-confirm` to perform the changes.
+
+### Static Passwords
+
+GMan can be used to manage dummy/testing accounts with predefined passwords. Note that you should never
+put real passwords in cleartext anywhere near GMan, but if you have public passwords, e.g. for workshops
+and demonstrations, this feature can be handy.
+
+To make use of this, set a cleartext password for a user in your `users.yaml`:
+
+```yaml
+organization: myorganization
+users:
+  - givenName: Josef
+    familyName: K
+    primaryEmail: josef@myorganization.com
+    orgUnitPath: /Developers
+    password: i-am-not-secure-at-all
+```
+
+You must then opt-in to this feature by running GMan with `-insecure-passwords`:
+
+```bash
+$ gman \
+    -private-key MYKEY.json \
+    -impersonated-email me@example.com \
+    -users-config myconfig.yaml \
+    -groups-config myconfig.yaml \
+    -orgunits-config myconfig.yaml \
+    -insecure-passwords
+2020/06/25 18:55:54 ✓ Configuration is valid.
+2020/06/25 18:55:54 ► Updating organization myorganization...
+...
+```
+
+GMan will now set the configured password and store its SHA256 hash as a custom schema field on the user.
+On the next run, GMan will compare the hash with the configured password and update the user in GSuite
+only if needed.
 
 ## Limitations
 

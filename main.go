@@ -56,6 +56,7 @@ type options struct {
 	licensesYAML          bool
 	clientSecretFile      string
 	impersonatedUserEmail string
+	insecurePasswords     bool
 	throttleRequests      time.Duration
 	licenses              []config.License
 }
@@ -78,6 +79,7 @@ func main() {
 	flag.BoolVar(&opt.licensesAction, "licenses", false, "print the builtin licenses and then exit")
 	flag.BoolVar(&opt.licensesYAML, "licenses-yaml", false, "print the builtin licenses as YAML (use together with -licenses)")
 	flag.BoolVar(&opt.confirm, "confirm", false, "must be set to actually perform any changes")
+	flag.BoolVar(&opt.insecurePasswords, "insecure-passwords", false, "allow configuring static passwords for users")
 	flag.DurationVar(&opt.throttleRequests, "throttle-requests", 500*time.Millisecond, "the delay between Enterprise Licensing API requests")
 	flag.Parse()
 
@@ -203,7 +205,12 @@ func syncAction(
 		log.Fatalf("⚠ Failed to sync: %v.", err)
 	}
 
-	userChanges, err := sync.SyncUsers(ctx, directorySrv, licensingSrv, opt.usersConfig, opt.licenseStatus, opt.confirm)
+	err = sync.SyncSchema(ctx, directorySrv, opt.confirm)
+	if err != nil {
+		log.Fatalf("⚠ Failed to sync: %v.", err)
+	}
+
+	userChanges, err := sync.SyncUsers(ctx, directorySrv, licensingSrv, opt.usersConfig, opt.licenseStatus, opt.insecurePasswords, opt.confirm)
 	if err != nil {
 		log.Fatalf("⚠ Failed to sync: %v.", err)
 	}
@@ -324,6 +331,7 @@ func getScopes(readonly bool) []string {
 			directoryv1.AdminDirectoryOrgunitReadonlyScope,
 			directoryv1.AdminDirectoryGroupMemberReadonlyScope,
 			directoryv1.AdminDirectoryResourceCalendarReadonlyScope,
+			directoryv1.AdminDirectoryUserschemaReadonlyScope,
 		}
 	}
 
@@ -333,5 +341,6 @@ func getScopes(readonly bool) []string {
 		directoryv1.AdminDirectoryOrgunitScope,
 		directoryv1.AdminDirectoryGroupMemberScope,
 		directoryv1.AdminDirectoryResourceCalendarScope,
+		directoryv1.AdminDirectoryUserschemaScope,
 	}
 }
