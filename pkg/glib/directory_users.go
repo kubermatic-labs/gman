@@ -82,6 +82,10 @@ func (ds *DirectoryService) DeleteUser(ctx context.Context, user *directoryv1.Us
 }
 
 func (ds *DirectoryService) UpdateUser(ctx context.Context, oldUser *directoryv1.User, newUser *directoryv1.User) (*directoryv1.User, error) {
+	// google.golang.org/api v0.40.0 cannot by default handle removing recovery phone/email
+	// fields, see https://github.com/googleapis/google-api-go-client/issues/901
+	newUser.ForceSendFields = []string{"RecoveryEmail", "RecoveryPhone"}
+
 	updatedUser, err := ds.Users.Update(oldUser.PrimaryEmail, newUser).Context(ctx).Do()
 	if err != nil {
 		return nil, err
