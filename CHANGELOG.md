@@ -2,6 +2,10 @@
 
 All notable changes to this module will be documented in this file.
 
+## [v0.5.1] - 2021-03-01
+
+* fix removing recovery phones/emails
+
 ## [v0.5.0] - 2021-02-04
 
 * improved license handling speed
