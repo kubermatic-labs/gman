@@ -277,7 +277,6 @@ func ToGSuiteGroup(group *Group) (*directoryv1.Group, *groupssettingsv1.Groups) 
 		WhoCanPostMessage:    group.WhoCanPostMessage,
 		WhoCanJoin:           group.WhoCanJoin,
 		IsArchived:           strconv.FormatBool(group.IsArchived),
-		ArchiveOnly:          strconv.FormatBool(group.IsArchived),
 		AllowExternalMembers: strconv.FormatBool(group.AllowExternalMembers),
 	}
 
