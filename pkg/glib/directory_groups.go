@@ -120,7 +120,8 @@ func (ds *DirectoryService) AddNewMember(ctx context.Context, group *directoryv1
 
 // RemoveMember removes a member from a group in Gsuite
 func (ds *DirectoryService) RemoveMember(ctx context.Context, group *directoryv1.Group, member *directoryv1.Member) error {
-	if err := ds.Members.Delete(group.Email, member.Email).Context(ctx).Do(); err != nil {
+	// do NOT use the member email here, as it will lead to "Error 404: Resource Not Found: email, notFound." errors
+	if err := ds.Members.Delete(group.Id, member.Id).Context(ctx).Do(); err != nil {
 		return err
 	}
 
@@ -129,7 +130,8 @@ func (ds *DirectoryService) RemoveMember(ctx context.Context, group *directoryv1
 
 // UpdateMembership changes the role of the member
 func (ds *DirectoryService) UpdateMembership(ctx context.Context, group *directoryv1.Group, member *directoryv1.Member) error {
-	if _, err := ds.Members.Update(group.Email, member.Email, member).Context(ctx).Do(); err != nil {
+	// do NOT use the member email here, as it will lead to "Error 404: Resource Not Found: email, notFound." errors
+	if _, err := ds.Members.Update(group.Email, member.Id, member).Context(ctx).Do(); err != nil {
 		return err
 	}
 
