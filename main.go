@@ -67,9 +67,9 @@ func main() {
 		err error
 	)
 
-	flag.StringVar(&opt.usersConfigFile, "users-config", "", "path to the config.yaml that contains all users")
-	flag.StringVar(&opt.groupsConfigFile, "groups-config", "", "path to the config.yaml that contains all groups")
-	flag.StringVar(&opt.orgUnitsConfigFile, "orgunits-config", "", "path to the config.yaml that contains all organization units")
+	flag.StringVar(&opt.usersConfigFile, "users-config", "", "path to the config.yaml that contains all users (if not given, users are not synchronized)")
+	flag.StringVar(&opt.groupsConfigFile, "groups-config", "", "path to the config.yaml that contains all groups (if not given, groups are not synchronized)")
+	flag.StringVar(&opt.orgUnitsConfigFile, "orgunits-config", "", "path to the config.yaml that contains all organization units (required)")
 	flag.StringVar(&opt.licensesConfigFile, "licenses-config", "", "(optional) instead of using the inbuilt license list, this is a config.yaml that contains the relevant licenses")
 	flag.StringVar(&opt.clientSecretFile, "private-key", "", "path to the Service Account secret file (.json) coontaining Keys used for authorization")
 	flag.StringVar(&opt.impersonatedUserEmail, "impersonated-email", "", "Admin email used to impersonate Service Account")
@@ -94,14 +94,18 @@ func main() {
 	}
 
 	// open the files
-	opt.usersConfig, err = config.LoadFromFile(opt.usersConfigFile)
-	if err != nil {
-		log.Fatalf("⚠ Failed to load user config from %q: %v.", opt.usersConfigFile, err)
+	if opt.usersConfigFile != "" {
+		opt.usersConfig, err = config.LoadFromFile(opt.usersConfigFile)
+		if err != nil {
+			log.Fatalf("⚠ Failed to load user config from %q: %v.", opt.usersConfigFile, err)
+		}
 	}
 
-	opt.groupsConfig, err = config.LoadFromFile(opt.groupsConfigFile)
-	if err != nil {
-		log.Fatalf("⚠ Failed to load group config from %q: %v.", opt.groupsConfigFile, err)
+	if opt.groupsConfigFile != "" {
+		opt.groupsConfig, err = config.LoadFromFile(opt.groupsConfigFile)
+		if err != nil {
+			log.Fatalf("⚠ Failed to load group config from %q: %v.", opt.groupsConfigFile, err)
+		}
 	}
 
 	opt.orgUnitsConfig, err = config.LoadFromFile(opt.orgUnitsConfigFile)
@@ -210,14 +214,24 @@ func syncAction(
 		log.Fatalf("⚠ Failed to sync: %v.", err)
 	}
 
-	userChanges, err := sync.SyncUsers(ctx, directorySrv, licensingSrv, opt.usersConfig, opt.licenseStatus, opt.insecurePasswords, opt.confirm)
-	if err != nil {
-		log.Fatalf("⚠ Failed to sync: %v.", err)
+	userChanges := false
+	if opt.usersConfig != nil {
+		userChanges, err = sync.SyncUsers(ctx, directorySrv, licensingSrv, opt.usersConfig, opt.licenseStatus, opt.insecurePasswords, opt.confirm)
+		if err != nil {
+			log.Fatalf("⚠ Failed to sync: %v.", err)
+		}
+	} else {
+		log.Println("⚠ No user configuration provided, not synchronizing users.")
 	}
 
-	groupChanges, err := sync.SyncGroups(ctx, directorySrv, groupsSettingsSrv, opt.groupsConfig, opt.confirm)
-	if err != nil {
-		log.Fatalf("⚠ Failed to sync: %v.", err)
+	groupChanges := false
+	if opt.usersConfig != nil {
+		groupChanges, err = sync.SyncGroups(ctx, directorySrv, groupsSettingsSrv, opt.groupsConfig, opt.confirm)
+		if err != nil {
+			log.Fatalf("⚠ Failed to sync: %v.", err)
+		}
+	} else {
+		log.Println("⚠ No group configuration provided, not synchronizing groups.")
 	}
 
 	if opt.confirm {
@@ -242,16 +256,22 @@ func exportAction(
 		log.Fatalf("⚠ Failed to export: %v.", err)
 	}
 
-	log.Println("► Exporting users…")
-	users, err := export.ExportUsers(ctx, directorySrv, licensingSrv, opt.licenseStatus)
-	if err != nil {
-		log.Fatalf("⚠ Failed to export: %v.", err)
+	users := []config.User{}
+	if opt.usersConfigFile != "" {
+		log.Println("► Exporting users…")
+		users, err = export.ExportUsers(ctx, directorySrv, licensingSrv, opt.licenseStatus)
+		if err != nil {
+			log.Fatalf("⚠ Failed to export: %v.", err)
+		}
 	}
 
-	log.Println("► Exporting groups…")
-	groups, err := export.ExportGroups(ctx, directorySrv, groupsSettingsSrv)
-	if err != nil {
-		log.Fatalf("⚠ Failed to export: %v.", err)
+	groups := []config.Group{}
+	if opt.groupsConfigFile != "" {
+		log.Println("► Exporting groups…")
+		groups, err = export.ExportGroups(ctx, directorySrv, groupsSettingsSrv)
+		if err != nil {
+			log.Fatalf("⚠ Failed to export: %v.", err)
+		}
 	}
 
 	log.Println("► Updating config files…")
@@ -263,12 +283,16 @@ func exportAction(
 		log.Fatalf("⚠ Failed to update org unit config file: %v.", err)
 	}
 
-	if err := saveExport(opt.usersConfigFile, func(cfg *config.Config) { cfg.Users = users }); err != nil {
-		log.Fatalf("⚠ Failed to update user config file: %v.", err)
+	if opt.usersConfigFile != "" {
+		if err := saveExport(opt.usersConfigFile, func(cfg *config.Config) { cfg.Users = users }); err != nil {
+			log.Fatalf("⚠ Failed to update user config file: %v.", err)
+		}
 	}
 
-	if err := saveExport(opt.groupsConfigFile, func(cfg *config.Config) { cfg.Groups = groups }); err != nil {
-		log.Fatalf("⚠ Failed to update group config file: %v.", err)
+	if opt.groupsConfigFile != "" {
+		if err := saveExport(opt.groupsConfigFile, func(cfg *config.Config) { cfg.Groups = groups }); err != nil {
+			log.Fatalf("⚠ Failed to update group config file: %v.", err)
+		}
 	}
 
 	log.Println("✓ Export successful.")
@@ -304,20 +328,24 @@ func validateAction(opt *options) bool {
 		valid = false
 	}
 
-	if errs := opt.usersConfig.ValidateUsers(); errs != nil {
-		log.Println("⚠ User configuration is invalid:")
-		for _, e := range errs {
-			log.Printf("  - %v", e)
+	if opt.usersConfig != nil {
+		if errs := opt.usersConfig.ValidateUsers(); errs != nil {
+			log.Println("⚠ User configuration is invalid:")
+			for _, e := range errs {
+				log.Printf("  - %v", e)
+			}
+			valid = false
 		}
-		valid = false
 	}
 
-	if errs := opt.groupsConfig.ValidateGroups(); errs != nil {
-		log.Println("⚠ Group configuration is invalid:")
-		for _, e := range errs {
-			log.Printf("  - %v", e)
+	if opt.groupsConfig != nil {
+		if errs := opt.groupsConfig.ValidateGroups(); errs != nil {
+			log.Println("⚠ Group configuration is invalid:")
+			for _, e := range errs {
+				log.Printf("  - %v", e)
+			}
+			valid = false
 		}
-		valid = false
 	}
 
 	return valid
