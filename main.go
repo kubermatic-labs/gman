@@ -225,7 +225,7 @@ func syncAction(
 	}
 
 	groupChanges := false
-	if opt.usersConfig != nil {
+	if opt.groupsConfig != nil {
 		groupChanges, err = sync.SyncGroups(ctx, directorySrv, groupsSettingsSrv, opt.groupsConfig, opt.confirm)
 		if err != nil {
 			log.Fatalf("⚠ Failed to sync: %v.", err)
