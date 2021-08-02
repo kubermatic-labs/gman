@@ -317,11 +317,18 @@ func ToConfigGroup(gsuiteGroup *directoryv1.Group, settings *groupssettingsv1.Gr
 	return group, nil
 }
 
-func ToGSuiteGroupMember(member *Member) *directoryv1.Member {
-	return &directoryv1.Member{
+func ToGSuiteGroupMember(member *Member, gsuiteMember *directoryv1.Member) *directoryv1.Member {
+	result := &directoryv1.Member{
 		Email: member.Email,
 		Role:  member.Role,
 	}
+
+	if gsuiteMember != nil {
+		result.Id = gsuiteMember.Id
+		result.Etag = gsuiteMember.Etag
+	}
+
+	return result
 }
 
 func ToConfigGroupMember(gsuiteMember *directoryv1.Member) Member {

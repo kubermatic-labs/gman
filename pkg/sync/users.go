@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
 
 	directoryv1 "google.golang.org/api/admin/directory/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -47,6 +48,10 @@ func SyncUsers(
 	}
 
 	liveEmails := sets.NewString()
+
+	sort.Slice(liveUsers, func(i, j int) bool {
+		return liveUsers[i].PrimaryEmail < liveUsers[j].PrimaryEmail
+	})
 
 	for _, liveUser := range liveUsers {
 		liveEmails.Insert(liveUser.PrimaryEmail)

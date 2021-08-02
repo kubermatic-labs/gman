@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
 
 	directoryv1 "google.golang.org/api/admin/directory/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -45,6 +46,10 @@ func SyncGroups(
 	}
 
 	liveGroupEmails := sets.NewString()
+
+	sort.Slice(liveGroups, func(i, j int) bool {
+		return liveGroups[i].Email < liveGroups[j].Email
+	})
 
 	for _, liveGroup := range liveGroups {
 		liveGroupEmails.Insert(liveGroup.Email)
@@ -171,7 +176,7 @@ func syncGroupMembers(
 			log.Printf("    ✎ %s", liveMember.Email)
 
 			if confirm {
-				member := config.ToGSuiteGroupMember(expectedMember)
+				member := config.ToGSuiteGroupMember(expectedMember, liveMember)
 				if err := directorySrv.UpdateMembership(ctx, liveGroup, member); err != nil {
 					return fmt.Errorf("unable to update membership: %v", err)
 				}
@@ -184,7 +189,7 @@ func syncGroupMembers(
 			log.Printf("    + %s", expectedMember.Email)
 
 			if confirm {
-				member := config.ToGSuiteGroupMember(&expectedMember)
+				member := config.ToGSuiteGroupMember(&expectedMember, nil)
 				if err := directorySrv.AddNewMember(ctx, liveGroup, member); err != nil {
 					return fmt.Errorf("unable to add member: %v", err)
 				}

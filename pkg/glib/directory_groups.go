@@ -131,7 +131,7 @@ func (ds *DirectoryService) RemoveMember(ctx context.Context, group *directoryv1
 // UpdateMembership changes the role of the member
 func (ds *DirectoryService) UpdateMembership(ctx context.Context, group *directoryv1.Group, member *directoryv1.Member) error {
 	// do NOT use the member email here, as it will lead to "Error 404: Resource Not Found: email, notFound." errors
-	if _, err := ds.Members.Update(group.Email, member.Id, member).Context(ctx).Do(); err != nil {
+	if _, err := ds.Members.Update(group.Id, member.Id, member).Context(ctx).Do(); err != nil {
 		return err
 	}
 
