@@ -35,7 +35,7 @@ are very busy and read the mailing lists.
 
 ## Reporting a security vulnerability
 
-Due to their public nature, GitHub and mailing lists are not appropriate places for reporting vulnerabilities. If you suspect you have found a security vulnerability in rkt, please do not file a GitHub issue, but instead email security@Kubermatic.com with the full details, including steps to reproduce the issue.
+Due to their public nature, GitHub and mailing lists are not appropriate places for reporting vulnerabilities. If you suspect you have found a security vulnerability in gman, please do not file a GitHub issue, but instead email security@kubermatic.com with the full details, including steps to reproduce the issue.
 
 ## Getting Started
 
@@ -47,7 +47,7 @@ Due to their public nature, GitHub and mailing lists are not appropriate places 
 
 This is a rough outline of what a contributor's workflow looks like:
 
-- Create a topic branch from where you want to base your work (usually master).
+- Create a topic branch from where you want to base your work (usually main).
 - Make commits of logical units.
 - Make sure your commit messages are in the proper format (see below).
 - Push your changes to a topic branch in your fork of the repository.
